@@ -4,16 +4,16 @@
   <use name="DataFormats/DetId"/>
 </bin>
 
+<bin file="HGCROCAlgoTest.cpp" name="HGCROCAlgoTest">
+  <flags TEST_RUNNER_ARGS=" SinCalorimetery/HGCalSimAlgos/test/hgcrocAlgoTest_cfg.py"/>
+  <use name="FWCore/ParameterSetReader"/>
+  <use name="DataFormats/HGCalDigi"/>
+  <use name="SimCalorimetry/HGCalSimProducers"/>
+</bin>
+
 <library file="HGCalConditionsByAlgoAnalyzer.cc" name="HGCalConditionsByAlgoAnalyzer">
   <flags EDM_PLUGIN="1"/>
   <use name="SimCalorimetry/HGCalSimAlgos"/>
   <use name="CommonTools/UtilAlgos"/>
   <use name="Geometry/Records"/>
 </library>
-
-<!--
-<library file="HFNoseNoiseMapAnalyzer.cc" name="HFNoseNoiseMapAnalyzer">
-</library>
-<library file="HGCHEbackSignalScalerAnalyzer.cc" name="HGCHEbackSignalScalerAnalyzer">
-</library>
--->
