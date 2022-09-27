@@ -1,10 +1,19 @@
-<use name="SimCalorimetry/HGCalSimAlgos"/>
-<use name="CommonTools/UtilAlgos"/>
-<use name="Geometry/Records"/>
-<flags EDM_PLUGIN="1"/>
-<library file="HGCSiNoiseMapAnalyzer.cc" name="HGCSiNoiseMapAnalyzer">
+<bin file="HGCalRadiationMapTest.cc" name="HGCalRadiationMapTest">
+  <flags TEST_RUNNER_ARGS=" 200000000 SimCalorimetry/HGCalSimProducers/data/doseParams_3000fb_fluka-3.7.20.txt"/>
+  <use name="SimCalorimetry/HGCalSimAlgos"/>
+  <use name="DataFormats/DetId"/>
+</bin>
+
+<library file="HGCalConditionsByAlgoAnalyzer.cc" name="HGCalConditionsByAlgoAnalyzer">
+  <flags EDM_PLUGIN="1"/>
+  <use name="SimCalorimetry/HGCalSimAlgos"/>
+  <use name="CommonTools/UtilAlgos"/>
+  <use name="Geometry/Records"/>
 </library>
+
+<!--
 <library file="HFNoseNoiseMapAnalyzer.cc" name="HFNoseNoiseMapAnalyzer">
 </library>
 <library file="HGCHEbackSignalScalerAnalyzer.cc" name="HGCHEbackSignalScalerAnalyzer">
 </library>
+-->

@@ -6,22 +6,8 @@
 HGCalRadiationMap::HGCalRadiationMap() : fluenceSFlog10_(0.) {}
 
 //
-void HGCalRadiationMap::setDoseMap(const std::string& fullpath, const unsigned int algo) {
+void HGCalRadiationMap::setDoseMap(const std::string& fullpath) {
   doseMap_ = readDosePars(fullpath);
-  algo_ = algo;
-}
-
-//
-void HGCalRadiationMap::setGeometry(const CaloSubdetectorGeometry* geom) {
-  hgcalGeom_ = static_cast<const HGCalGeometry*>(geom);
-  hgcalTopology_ = &(hgcalGeom_->topology());
-  hgcalDDD_ = &(hgcalTopology_->dddConstants());
-}
-
-//
-double HGCalRadiationMap::computeRadius(const HGCScintillatorDetId& cellId) {
-  GlobalPoint global = geom()->getPosition(cellId);
-  return std::sqrt(std::pow(global.x(), 2) + std::pow(global.y(), 2));
 }
 
 //
@@ -60,9 +46,9 @@ double HGCalRadiationMap::getFluenceValue(const int subdet, const int layer, con
 }
 
 //
-std::map<std::pair<int, int>, HGCalRadiationMap::DoseParameters> HGCalRadiationMap::readDosePars(
-    const std::string& fullpath) {
-  doseParametersMap result;
+HGCalRadiationMap::DoseParametersMap_t HGCalRadiationMap::readDosePars(const std::string& fullpath) {
+  
+  DoseParametersMap_t result;
 
   //no dose file means no aging
   if (fullpath.empty())
@@ -79,7 +65,7 @@ std::map<std::pair<int, int>, HGCalRadiationMap::DoseParameters> HGCalRadiationM
     int layer;
     DoseParameters dosePars;
 
-    //space-separated
+    //space-separated values
     std::stringstream linestream(line);
     linestream >> subdet >> layer >> dosePars.a_ >> dosePars.b_ >> dosePars.c_ >> dosePars.d_ >> dosePars.e_ >>
         dosePars.doff_ >> dosePars.f_ >> dosePars.g_ >> dosePars.h_ >> dosePars.i_ >> dosePars.j_ >> dosePars.foff_;
@@ -87,5 +73,6 @@ std::map<std::pair<int, int>, HGCalRadiationMap::DoseParameters> HGCalRadiationM
     std::pair<int, int> key(subdet, layer);
     result[key] = dosePars;
   }
+  
   return result;
 }

@@ -1,32 +1,25 @@
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
-
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
-
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
+#include "FWCore/PluginManager/interface/ModuleDef.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
 
-// Geometry
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
-#include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
-#include "Geometry/HGCalCommonData/interface/HGCalDDDConstants.h"
-#include "Geometry/HcalCommonData/interface/HcalDDDRecConstants.h"
 
-#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalSiNoiseMap.h"
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConditionsByAlgoWrapper.h"
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConfigurationByAlgoWrapper.h"
 
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TProfile.h>
 
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/PluginManager/interface/ModuleDef.h"
-#include "FWCore/ServiceRegistry/interface/Service.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-
-//STL headers
 #include <vector>
 #include <sstream>
 #include <string>
@@ -39,42 +32,52 @@ using namespace std;
 //
 // class declaration
 //
-class HFNoseNoiseMapAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class HGCalConditionsByAlgoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
-  explicit HFNoseNoiseMapAnalyzer(const edm::ParameterSet &);
-  ~HFNoseNoiseMapAnalyzer() override;
+  explicit HGCalConditionsByAlgoAnalyzer(const edm::ParameterSet &);
+  ~HGCalConditionsByAlgoAnalyzer() override;
 
 private:
   void beginJob() override {}
   void analyze(const edm::Event &, const edm::EventSetup &) override;
-  void endJob() override {}
-
+  void endJob() override;
+  void bookHistograms(DetId::Detector d,unsigned int nlay,float xmin, float xmax, int xbins);
+  void fillSiHistograms(DetId::Detector &d, HGCSiConditionsByAlgoWrapper &conds);
+  
   // ----------member data ---------------------------
   const edm::ESGetToken<CaloGeometry, CaloGeometryRecord> tokGeom_;
   edm::Service<TFileService> fs_;
-  std::map<DetId::Detector, std::unique_ptr<HGCalSiNoiseMap<HFNoseDetId>>> noiseMaps_;
-  std::map<std::pair<DetId::Detector, int>, TH1F *> layerN_, layerCCE_, layerNoise_, layerIleak_, layerSN_, layerF_,
-      layerGain_, layerMipPeak_;
+
+  HGCSiConditionsByAlgoWrapper hgceeConds_, hgchesiConds_;
+  HGCSiPMonTileConditionsByAlgoWrapper hgcsciConds_;
+
+  typedef std::pair<DetId::Detector,unsigned int> LayerKey_t;
+  std::map<LayerKey_t,std::map<std::string, TH1F *> > histos1D_;
+  //std::map<std::string, TH2F *> histos2D_;
+  
+  /*
+  std::map<std::pair<DetId::Detector, int>, TH1F *> layerN_, layerCCE_, layerNoise_, layerIleak_, layerSN_, layerF_, layerGain_, layerMipPeak_;
   std::map<DetId::Detector, TH2F *> detN_, detCCE_, detNoise_, detIleak_, detSN_, detF_, detGain_, detMipPeak_;
   std::map<std::pair<DetId::Detector, int>, TProfile *> detCCEVsFluence_;
 
   int aimMIPtoADC_;
   bool ignoreGainSettings_;
-
+  */
+  
   const int plotMargin_ = 20;
 };
 
 //
-HFNoseNoiseMapAnalyzer::HFNoseNoiseMapAnalyzer(const edm::ParameterSet &iConfig)
+HGCalConditionsByAlgoAnalyzer::HGCalConditionsByAlgoAnalyzer(const edm::ParameterSet &iConfig)
     : tokGeom_(esConsumes<CaloGeometry, CaloGeometryRecord>()) {
   usesResource("TFileService");
   fs_->file().cd();
 
-  //configure the dose map
-  //  std::string doseMapURL(iConfig.getParameter<std::string>("doseMap"));
-  std::string doseMapURL("SimCalorimetry/HGCalSimProducers/data/doseParams_3000fb_fluka_HFNose_3.7.20.12_Eta2.4.txt");
-  unsigned int doseMapAlgo(iConfig.getParameter<unsigned int>("doseMapAlgo"));
+  //common configuration parameters for the conditions by algo classes
+  std::string doseMapURL(iConfig.getParameter<std::string>("doseMap"));
   double scaleByDoseFactor(iConfig.getParameter<double>("scaleByDoseFactor"));
+
+  //conditions for the Si sections
   std::vector<double> ileakParam(
       iConfig.getParameter<edm::ParameterSet>("ileakParam").template getParameter<std::vector<double>>("ileakParam"));
   std::vector<double> cceParamFine(
@@ -83,28 +86,130 @@ HFNoseNoiseMapAnalyzer::HFNoseNoiseMapAnalyzer(const edm::ParameterSet &iConfig)
       iConfig.getParameter<edm::ParameterSet>("cceParams").template getParameter<std::vector<double>>("cceParamThin"));
   std::vector<double> cceParamThick(
       iConfig.getParameter<edm::ParameterSet>("cceParams").template getParameter<std::vector<double>>("cceParamThick"));
+  std::vector<unsigned int> confAlgo(iConfig.getParameter<std::vector<unsigned int> >("confAlgo"));
 
-  noiseMaps_[DetId::Forward] = std::unique_ptr<HGCalSiNoiseMap<HFNoseDetId>>(new HGCalSiNoiseMap<HFNoseDetId>);
-  noiseMaps_[DetId::Forward]->setDoseMap(doseMapURL, doseMapAlgo);
-  noiseMaps_[DetId::Forward]->setFluenceScaleFactor(scaleByDoseFactor);
-  noiseMaps_[DetId::Forward]->setIleakParam(ileakParam);
-  noiseMaps_[DetId::Forward]->setCceParam(cceParamFine, cceParamThin, cceParamThick);
+  hgceeConds_.getConditionsAlgo().setDoseMap(doseMapURL,confAlgo[0]);
+  hgceeConds_.getConditionsAlgo().setFluenceScaleFactor(scaleByDoseFactor);
+  hgceeConds_.getConditionsAlgo().setIleakParam(ileakParam);
+  hgceeConds_.getConditionsAlgo().setCceParam(cceParamFine, cceParamThin, cceParamThick);
 
-  aimMIPtoADC_ = iConfig.getParameter<int>("aimMIPtoADC");
-  ignoreGainSettings_ = iConfig.getParameter<bool>("ignoreGainSettings");
+  hgchesiConds_.getConditionsAlgo().setDoseMap(doseMapURL,confAlgo[1]);
+  hgchesiConds_.getConditionsAlgo().setFluenceScaleFactor(scaleByDoseFactor);
+  hgchesiConds_.getConditionsAlgo().setIleakParam(ileakParam);
+  hgchesiConds_.getConditionsAlgo().setCceParam(cceParamFine, cceParamThin, cceParamThick);
+
+  //conditions for the SiPM-on-Tile section
+  double refIdark = iConfig.getParameter<double>("referenceIdark");
+  hgcsciConds_.getConditionsAlgo().setDoseMap(doseMapURL,confAlgo[2]);
+  hgcsciConds_.getConditionsAlgo().setFluenceScaleFactor(scaleByDoseFactor);
+  hgcsciConds_.getConditionsAlgo().setReferenceDarkCurrent(refIdark);
+
+  //aimMIPtoADC_ = iConfig.getParameter<int>("aimMIPtoADC");
+  //ignoreGainSettings_ = iConfig.getParameter<bool>("ignoreGainSettings");
+
+  //get the errors correct
+  TH1::SetDefaultSumw2();
 }
 
 //
-HFNoseNoiseMapAnalyzer::~HFNoseNoiseMapAnalyzer() {}
+void HGCalConditionsByAlgoAnalyzer::bookHistograms(DetId::Detector d,unsigned int nlay,float xmin, float xmax, int xbins) {
+
+
+  TString title("CE-E");
+  if(d == DetId::HGCalEE)  title="CE-H(Si)";
+  if(d == DetId::HGCalHSc) title="CE-H(SiPM-on-tile)";
+  
+  for (unsigned int ilay = 1; ilay < nlay+1; ilay++) {
+
+    LayerKey_t key(d,ilay);
+     
+    TString baseName(Form("d%d_layer%d_", d, ilay));
+    TString baseTitle(Form("%s %d", title.Data(), ilay));
+    baseTitle += ";Radius [cm];";
+    histos1D_[key]["ncells"]  = fs_->make<TH1F>(baseName + "ncells",  baseTitle + "Cells",               xbins, xmin, xmax);
+    //histos1D_[key]["noise"]   = fs_->make<TH1F>(baseName + "noise",   baseTitle + "<Noise> [fC]",        xbins, xmin, xmax);
+    //histos1D_[key]["sn"]      = fs_->make<TH1F>(baseName + "sn",      baseTitle + "<S/N>",               xbins, xmin, xmax);
+    histos1D_[key]["fluence"] = fs_->make<TH1F>(baseName + "fluence", baseTitle + "<F> [n_{eq}/cm^{2}]", xbins, xmin, xmax);
+    
+    if(d != DetId::HGCalHSc) {
+      histos1D_[key]["cce"]   = fs_->make<TH1F>(baseName + "cce",   baseTitle + "<CCE>",             xbins, xmin, xmax);
+      histos1D_[key]["ileak"] = fs_->make<TH1F>(baseName + "ileak", baseTitle + "<I_{leak}> [#muA]", xbins, xmin, xmax);
+      //layerGain_[key] = fs_->make<TH1F>(baseName + "gain", baseTitle + "<Gain>", xbins, xmin, xmax);
+      //layerMipPeak_[key] = fs_->make<TH1F>(baseName + "mippeak", layerTitle + "<MIP peak> [ADC]", xbins, xmin, xmax);
+    }else{
+      histos1D_[key]["dose"]   = fs_->make<TH1F>(baseName + "dose",   baseTitle + "<Dose> [kRad]", xbins, xmin, xmax);
+    }
+
+  }
+
+}
 
 //
-void HFNoseNoiseMapAnalyzer::analyze(const edm::Event &iEvent, const edm::EventSetup &es) {
+void HGCalConditionsByAlgoAnalyzer::analyze(const edm::Event &iEvent, const edm::EventSetup &es) {
+
   //get geometry
   const auto &geom = es.getHandle(tokGeom_);
 
-  std::vector<DetId::Detector> dets = {DetId::Forward};
+  //CE-E
+  DetId::Detector det(DetId::HGCalEE);
+  hgceeConds_.setGeometry(geom->getSubdetectorGeometry(det, ForwardSubdetector::ForwardEmpty));
+  fillSiHistograms(det,hgceeConds_);
+
+  //CE-H Si
+  det=DetId::HGCalHSi;
+  hgchesiConds_.setGeometry(geom->getSubdetectorGeometry(det, ForwardSubdetector::ForwardEmpty));
+  fillSiHistograms(det,hgchesiConds_);
+
+  //CE-H SiPM-on-Tile
+  //hgcsciConds_.setGeometry(geom->getSubdetectorGeometry(DetId::HGCalHSc, ForwardSubdetector::ForwardEmpty));
+  //fillSiPMonTileHistograms(det,hgcsciConds_);
+}
+
+//
+void HGCalConditionsByAlgoAnalyzer::fillSiHistograms(DetId::Detector &det, HGCSiConditionsByAlgoWrapper &conds){
+  
+  //book histograms
+  unsigned int nlay = conds.ddd()->layers(true);
+  std::pair<double, double> ranZ = conds.ddd()->rangeZ(true);
+  std::pair<double, double> ranRAtZ = conds.ddd()->rangeR(ranZ.first, true);
+  bookHistograms(det,nlay,ranRAtZ.first-plotMargin_, ranRAtZ.second+plotMargin_,100);
+  
+  //loop over the available DetIds
+  const std::vector<DetId> &detIdVec = conds.geom()->getValidDetIds();
+  for (const auto &cellId : detIdVec) {
+
+    double r = conds.computeRadius(cellId);
+
+    //get the conditions either from cache or recomputing again from scratch
+    HGCSiliconDetId id(cellId.rawId());
+    int layer = id.layer();
+    unsigned int cellThick = id.type();
+    
+    HGCalSiConditionsByAlgo::SiCellOpCharacteristicsCore condsFromCache = conds.getConditionsForDetId(cellId);
+    HGCalSiConditionsByAlgo::SiCellOpCharacteristics condsFromAlgo  = conds.getConditionsAlgo().getConditionsByAlgo(det,layer,r,cellThick);
+
+    //assert both values match
+    assert(condsFromCache.cce == condsFromAlgo.core.cce);
+    assert(condsFromCache.ileak == condsFromAlgo.core.ileak);
+
+    //fill histos
+    LayerKey_t key(det,layer);
+    histos1D_[key]["ncells"]->Fill(r);
+    histos1D_[key]["fluence"]->Fill(r,condsFromAlgo.fluence);
+    histos1D_[key]["cce"]->Fill(r,condsFromAlgo.core.cce);
+    histos1D_[key]["ileak"]->Fill(r,condsFromAlgo.core.ileak);
+  }
+}
+
+
+  /*
+ 
+
+  */
+  /*/
+  std::vector<DetId::Detector> dets = {DetId::HGCalEE, DetId::HGCalHSi};
   for (const auto &d : dets) {
-    noiseMaps_[d]->setGeometry(geom->getSubdetectorGeometry(d, ForwardSubdetector::HFNose));
+    noiseMaps_[d]->setGeometry(geom->getSubdetectorGeometry(d, ForwardSubdetector::ForwardEmpty));
     //sub-detector boundaries
     unsigned int nlay = noiseMaps_[d]->ddd()->layers(true);
     std::pair<double, double> ranZ = noiseMaps_[d]->ddd()->rangeZ(true);
@@ -112,14 +217,12 @@ void HFNoseNoiseMapAnalyzer::analyze(const edm::Event &iEvent, const edm::EventS
     std::pair<double, double> ranR(ranRAtZ.first - plotMargin_, ranRAtZ.second + plotMargin_);
 
     const std::vector<DetId> &detIdVec = noiseMaps_[d]->geom()->getValidDetIds();
-    /*
     cout << "Subdetector:" << d << " has " << detIdVec.size() << " valid cells" << endl
          << "\t" << ranR.first << "<r<" << ranR.second << "\t" << ranZ.first << "<z<" << ranZ.second << endl;
-    */
 
     //start histos
     TString baseName(Form("d%d_", d));
-    TString title("HFNose");
+    TString title(d == DetId::HGCalEE ? "CEE" : "CEH_{Si}");
     Int_t nbinsR(100);
     for (unsigned int ilay = 0; ilay < nlay; ilay++) {
       //this layer histos
@@ -168,15 +271,15 @@ void HFNoseNoiseMapAnalyzer::analyze(const edm::Event &iEvent, const edm::EventS
 
     //fill histos
     for (const auto &cellId : detIdVec) {
-      HFNoseDetId id(cellId.rawId());
+      HGCSiliconDetId id(cellId.rawId());
       int layer = std::abs(id.layer());
       GlobalPoint pt = noiseMaps_[d]->geom()->getPosition(id);
       double r(pt.perp());
 
-      HGCalSiNoiseMap<HFNoseDetId>::GainRange_t gainToSet(HGCalSiNoiseMap<HFNoseDetId>::AUTO);
+      HGCalSiNoiseMap<HGCSiliconDetId>::GainRange_t gainToSet(HGCalSiNoiseMap<HGCSiliconDetId>::AUTO);
       if (ignoreGainSettings_)
-        gainToSet = HGCalSiNoiseMap<HFNoseDetId>::q80fC;
-      HGCalSiNoiseMap<HFNoseDetId>::SiCellOpCharacteristics siop =
+        gainToSet = HGCalSiNoiseMap<HGCSiliconDetId>::q80fC;
+      HGCalSiNoiseMap<HGCSiliconDetId>::SiCellOpCharacteristics siop =
           noiseMaps_[d]->getSiCellOpCharacteristics(id, gainToSet, aimMIPtoADC_);
 
       //fill histos (layer,radius)
@@ -224,7 +327,30 @@ void HFNoseNoiseMapAnalyzer::analyze(const edm::Event &iEvent, const edm::EventS
       layerMipPeak_[key]->Divide(layerN_[key]);
     }
   }
+
+  */
+
+
+//
+void HGCalConditionsByAlgoAnalyzer::endJob() {
+  
+  std::vector<std::string> hnames={"fluence","dose",
+                                   "cce","ileak","lysf","darkpx"};
+  for(auto lk : histos1D_) {
+
+    //the numerator needs to be present
+    if(lk.second.count("ncells")==0) continue;
+    
+    for(auto name : hnames) {
+      if(lk.second.count(name)==0) continue;
+      lk.second[name]->Divide(lk.second["ncells"]);
+    }
+  }
+  
 }
 
+//
+HGCalConditionsByAlgoAnalyzer::~HGCalConditionsByAlgoAnalyzer() {}
+
 //define this as a plug-in
-DEFINE_FWK_MODULE(HFNoseNoiseMapAnalyzer);
+DEFINE_FWK_MODULE(HGCalConditionsByAlgoAnalyzer);

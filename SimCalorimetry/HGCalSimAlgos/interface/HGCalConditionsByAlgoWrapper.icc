@@ -1,0 +1,94 @@
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConditionsByAlgoWrapper.h"
+
+//
+template <typename A,typename C, typename D>
+void HGCalConditionsByAlgoWrapper<A,C,D>::setGeometry(const CaloSubdetectorGeometry* geom) {
+  hgcalGeom_ = static_cast<const HGCalGeometry*>(geom);
+  hgcalTopology_ = &(hgcalGeom_->topology());
+  hgcalDDD_ = &(hgcalTopology_->dddConstants());
+  fillCache(false);
+}
+
+//
+template <typename A,typename C, typename D>
+unsigned int HGCalConditionsByAlgoWrapper<A,C,D>::getEquivalentDetId(DetId did) {
+
+  int det=did.det();
+  int subdet=did.subdetId();
+  unsigned int eqRawId(did.rawId());
+  
+  //get the offset and mask depending on the detector
+  if(det==DetId::HGCalHSi || det==DetId::HGCalEE) {
+     HGCSiliconDetId siDid(did);
+     eqRawId=HGCSiliconDetId(siDid.det(),0,siDid.type(),siDid.layer(),siDid.waferU(),siDid.waferV(),siDid.cellU(),siDid.cellV()).rawId();
+  }
+  else if(det==DetId::HGCalHSc) {
+     HGCScintillatorDetId scDid(did);
+     eqRawId=HGCScintillatorDetId(scDid.type(),abs(scDid.layer()),scDid.ring(),scDid.iphi(),false,scDid.sipm()).rawId();
+  }
+  else if(subdet==ForwardSubdetector::HFNose){
+     HFNoseDetId hfDid(did);
+     eqRawId=HFNoseDetId(0,hfDid.type(),hfDid.layer(),hfDid.waferU(),hfDid.waferV(),hfDid.cellU(),hfDid.cellV()).rawId();
+  }
+
+  return eqRawId;
+}
+
+//
+template <typename A,typename C, typename D>
+void HGCalConditionsByAlgoWrapper<A,C,D>::fillCache(bool forceFill) {
+
+   //skip this step if cache is already available
+   if(!forceFill && condCache_.size()>0) return;
+
+   //loop over the valid DetIds of the geometry
+   const auto &validDetIds = geom()->getValidDetIds();
+   for (const auto &did : validDetIds) {
+        double radius = computeRadius(did);
+        unsigned int eqRawId=getEquivalentDetId(did);
+        unsigned int rawId(did.rawId());
+        condCache_.emplace(eqRawId,condAlgo_.getCoreConditionsByAlgo(rawId,radius));
+   }
+}
+
+//
+template <typename A,typename C, typename D>
+double HGCalConditionsByAlgoWrapper<A,C,D>::computeRadius(const D &detId) {
+  GlobalPoint global = geom()->getPosition(detId);
+  return std::sqrt(std::pow(global.x(), 2) + std::pow(global.y(), 2));
+}
+
+//
+template <typename A,typename C, typename D>
+const HGCalGeometry *HGCalConditionsByAlgoWrapper<A,C,D>::geom() { return hgcalGeom_; }
+
+//
+template <typename A,typename C, typename D>
+const HGCalTopology *HGCalConditionsByAlgoWrapper<A,C,D>::topo() { return hgcalTopology_; }
+
+//
+template <typename A,typename C, typename D>
+const HGCalDDDConstants *HGCalConditionsByAlgoWrapper<A,C,D>::ddd() { return hgcalDDD_; }
+
+//
+template <typename A,typename C, typename D>
+A &HGCalConditionsByAlgoWrapper<A,C,D>::getConditionsAlgo() { return condAlgo_; }
+
+//
+template <typename A,typename C, typename D>
+std::map<uint32_t, C> &HGCalConditionsByAlgoWrapper<A,C,D>::getConditionsCache() { return condCache_; }
+
+//
+template <typename A,typename C, typename D>
+C HGCalConditionsByAlgoWrapper<A,C,D>::getConditionsForDetId(const D &detID){
+
+  //throw if this is not available
+  unsigned int rawId(detID.rawId());
+  unsigned int eqRawId=getEquivalentDetId(rawId);
+  auto it = condCache_.find(eqRawId);
+  if(it==condCache_.end()){
+      throw cms::Exception("ConditionsNotFound") << "Unable to find operation conditions for " << rawId << std::endl;
+  }
+
+  return it->second;
+}
