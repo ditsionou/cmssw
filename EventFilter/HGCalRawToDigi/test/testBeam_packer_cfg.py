@@ -20,13 +20,7 @@ process.source = cms.Source("EmptySource")
 process.hgcalEmulatedSlinkRawData.inputs = cms.vstring(
     'file:/eos/cms/store/group/dpg_hgcal/tb_hgcal/2022/sps_oct2022/electron_beam_100_160fC/beam_run/run_20221009_222828/beam_run0.root',
 )
-process.hgcalEmulatedSlinkRawData.econdParams.channelSurv = 0.5
-
-process.dump = cms.EDAnalyzer("DumpFEDRawDataProduct",
-    label = cms.untracked.InputTag('hgcalEmulatedSlinkRawData'),
-    feds = cms.untracked.vint32(0),
-    dumpPayload = cms.untracked.bool(True)
-)
+process.hgcalEmulatedFEDRawData.probabilityMaps.channelSurv = 0.5
 
 process.p = cms.Path(
     process.hgcalEmulatedSlinkRawData * process.dump
