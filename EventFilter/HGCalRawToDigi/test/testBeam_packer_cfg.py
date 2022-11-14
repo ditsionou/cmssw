@@ -22,8 +22,14 @@ process.hgcalEmulatedSlinkRawData.inputs = cms.vstring(
 )
 process.hgcalEmulatedFEDRawData.probabilityMaps.channelSurv = 0.5
 
+process.dump = cms.EDAnalyzer("DumpFEDRawDataProduct",
+    label = cms.untracked.InputTag('hgcalEmulatedFEDRawData'),
+    feds = cms.untracked.vint32(0),
+    dumpPayload = cms.untracked.bool(True)
+)
+
 process.p = cms.Path(
-    process.hgcalEmulatedSlinkRawData * process.dump
+    process.hgcalEmulatedFEDRawData * process.dump
 )
 
 process.output = cms.OutputModule("PoolOutputModule",
