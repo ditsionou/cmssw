@@ -15,14 +15,14 @@
 #include "DataFormats/FEDRawData/interface/FEDTrailer.h"
 
 #include "EventFilter/HGCalRawToDigi/interface/RawDataPackingTools.h"
-#include "EventFilter/HGCalRawToDigi/interface/HGCalECONDEmulatorInfo.h"
+#include "EventFilter/HGCalRawToDigi/interface/HGCalDigiToRawInfo.h"
 
 #include "CLHEP/Random/RandFlat.h"
 #include "TChain.h"
 
-class HGCalECONDEmulator : public edm::stream::EDProducer<> {
+class HGCalDigiToRaw : public edm::stream::EDProducer<> {
 public:
-  explicit HGCalECONDEmulator(const edm::ParameterSet&);
+  explicit HGCalDigiToRaw(const edm::ParameterSet&);
 
   static void fillDescriptions(edm::ConfigurationDescriptions&);
 
@@ -71,10 +71,10 @@ private:
 
   edm::Service<edm::RandomNumberGenerator> rng_;
   edm::EDPutTokenT<FEDRawDataCollection> fedRawToken_;
-  edm::EDPutTokenT<HGCalECONDEmulatorInfo> fedEmulInfoToken_;
+  edm::EDPutTokenT<HGCalDigiToRawInfo> fedEmulInfoToken_;
 };
 
-HGCalECONDEmulator::HGCalECONDEmulator(const edm::ParameterSet& iConfig)
+HGCalDigiToRaw::HGCalDigiToRaw(const edm::ParameterSet& iConfig)
     : input_files_(iConfig.getParameter<std::vector<std::string>>("inputs")),
       enabled_channels_(iConfig.getParameter<std::vector<unsigned int>>("enabledChannels")),
       num_channels_(iConfig.getParameter<unsigned int>("numChannels")),
@@ -85,7 +85,7 @@ HGCalECONDEmulator::HGCalECONDEmulator(const edm::ParameterSet& iConfig)
       store_emul_info_(iConfig.getParameter<bool>("storeEmulatorInfo")),
       chain_(new TChain(iConfig.getParameter<std::string>("treeName").data())) {
   if (!rng_.isAvailable())
-    throw cms::Exception("HGCalECONDEmulator") << "The HGCalECONDEmulator module requires the "
+    throw cms::Exception("HGCalDigiToRaw") << "The HGCalDigiToRaw module requires the "
                                                   "RandomNumberGeneratorService,\n"
                                                   "which appears to be absent. Please add that service to your "
                                                   "configuration\n"
@@ -93,12 +93,12 @@ HGCalECONDEmulator::HGCalECONDEmulator(const edm::ParameterSet& iConfig)
 
   fedRawToken_ = produces<FEDRawDataCollection>();
   if (store_emul_info_)
-    fedEmulInfoToken_ = produces<HGCalECONDEmulatorInfo>();
+    fedEmulInfoToken_ = produces<HGCalDigiToRawInfo>();
 }
 
-void HGCalECONDEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void HGCalDigiToRaw::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   if (it_data_ == data_.end())
-    throw cms::Exception("HGCalECONDEmulator") << "Insufficient number of events were retrieved from input tree to "
+    throw cms::Exception("HGCalDigiToRaw") << "Insufficient number of events were retrieved from input tree to "
                                                   "proceed with the generation of emulated events.";
 
   std::vector<uint64_t> enabled_channels;
@@ -123,14 +123,14 @@ void HGCalECONDEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 
   // compose 2*32-bit FED header word
   FEDHeader::set(ptr, trg_type, event_id, bx_id, fed_id_);
-  LogDebug("HGCalECONDEmulator").log([&](auto& log) {
+  LogDebug("HGCalDigiToRaw").log([&](auto& log) {
     const FEDHeader hdr(ptr);
     log << "FED header: lvl1ID=" << hdr.lvl1ID() << ", bxID=" << hdr.bxID() << ", source ID=" << hdr.sourceID() << ".";
   });
   ptr += FEDHeader::length;
 
   // insert ECON-D payload
-  LogDebug("HGCalECONDEmulator") << "Will write " << packed_event.size() << " 64-bit words = " << event_size
+  LogDebug("HGCalDigiToRaw") << "Will write " << packed_event.size() << " 64-bit words = " << event_size
                                  << " 8-bit words.";
   std::memcpy(ptr, packed_event.data(), event_size);
   ptr += event_size;
@@ -138,7 +138,7 @@ void HGCalECONDEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   // compose 2*32-bit FED trailer word
   FEDTrailer::set(
       ptr, packed_event.size() + 2, evf::compute_crc(reinterpret_cast<uint8_t*>(packed_event.data()), event_size), 0, 0);
-  LogDebug("HGCalECONDEmulator").log([&](auto& log) {
+  LogDebug("HGCalDigiToRaw").log([&](auto& log) {
     const FEDTrailer trl(ptr);
     log << "FED trailer: fragment length: " << trl.fragmentLength() << ", CRC=0x" << std::hex << trl.crc() << std::dec
         << ", status: " << trl.evtStatus() << ".";
@@ -149,7 +149,7 @@ void HGCalECONDEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSet
 
   // store the emulation information if requested
   if (store_emul_info_) {
-    HGCalECONDEmulatorInfo emul_info(header_bits.bitO,
+    HGCalDigiToRawInfo emul_info(header_bits.bitO,
                                      header_bits.bitB,
                                      header_bits.bitE,
                                      header_bits.bitT,
@@ -161,7 +161,7 @@ void HGCalECONDEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSet
   ++it_data_;
 }
 
-std::vector<uint32_t> HGCalECONDEmulator::produceECONEvent(const edm::Event& iEvent,
+std::vector<uint32_t> HGCalDigiToRaw::produceECONEvent(const edm::Event& iEvent,
                                                            std::vector<uint64_t>& enabled_channels,
                                                            HeaderBits_t& header_bits) const {
   auto* rng_engine = &rng_->getEngine(iEvent.streamID());
@@ -175,7 +175,7 @@ std::vector<uint32_t> HGCalECONDEmulator::produceECONEvent(const edm::Event& iEv
   header_bits.bitS = CLHEP::RandFlat::shoot(rng_engine) >= params_.bitS_error_prob;
 
   auto econ_event = generateERxData(iEvent, enabled_channels);
-  LogDebug("HGCalECONDEmulator") << econ_event.size() << " word(s) of eRx payloads inserted.";
+  LogDebug("HGCalDigiToRaw") << econ_event.size() << " word(s) of eRx payloads inserted.";
 
   // as ECON-D event content was just created, only prepend packet header at
   // this stage
@@ -198,7 +198,7 @@ std::vector<uint32_t> HGCalECONDEmulator::produceECONEvent(const edm::Event& iEv
       0,
       0);
   econ_event.insert(econ_event.begin(), econdH.begin(), econdH.end());
-  LogDebug("HGCalECONDEmulator") << econdH.size() << " word(s) of event packet header prepend. New size of ECON frame: "
+  LogDebug("HGCalDigiToRaw") << econdH.size() << " word(s) of event packet header prepend. New size of ECON frame: "
                                  << econ_event.size();
 
   econ_event.push_back(computeCRC(econdH));
@@ -207,7 +207,7 @@ std::vector<uint32_t> HGCalECONDEmulator::produceECONEvent(const edm::Event& iEv
   return econ_event;
 }
 
-std::vector<uint32_t> HGCalECONDEmulator::generateERxData(const edm::Event& iEvent,
+std::vector<uint32_t> HGCalDigiToRaw::generateERxData(const edm::Event& iEvent,
                                                           std::vector<uint64_t>& enabled_channels) const {
   auto* rng_engine = &rng_->getEngine(iEvent.streamID());
 
@@ -248,12 +248,12 @@ std::vector<uint32_t> HGCalECONDEmulator::generateERxData(const edm::Event& iEve
   return erxData;
 }
 
-uint8_t HGCalECONDEmulator::computeCRC(const std::vector<uint32_t>& event_header) const {
+uint8_t HGCalDigiToRaw::computeCRC(const std::vector<uint32_t>& event_header) const {
   uint8_t crc = 0;  //FIXME 8-bit Bluetooth CRC
   return crc;
 }
 
-void HGCalECONDEmulator::beginStream(edm::StreamID) {
+void HGCalDigiToRaw::beginStream(edm::StreamID) {
   for (const auto& input : input_files_)
     chain_->Add(input.data());
 
@@ -297,7 +297,7 @@ void HGCalECONDEmulator::beginStream(edm::StreamID) {
   it_data_ = data_.begin();
 }
 
-HGCalECONDEmulator::EmulatorParameters::EmulatorParameters(const edm::ParameterSet& iConfig)
+HGCalDigiToRaw::EmulatorParameters::EmulatorParameters(const edm::ParameterSet& iConfig)
     : chan_surv_prob(iConfig.getParameter<double>("channelSurv")),
       bitO_error_prob(iConfig.getParameter<double>("bitOError")),
       bitB_error_prob(iConfig.getParameter<double>("bitBError")),
@@ -306,7 +306,7 @@ HGCalECONDEmulator::EmulatorParameters::EmulatorParameters(const edm::ParameterS
       bitH_error_prob(iConfig.getParameter<double>("bitHError")),
       bitS_error_prob(iConfig.getParameter<double>("bitSError")) {}
 
-void HGCalECONDEmulator::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+void HGCalDigiToRaw::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<std::string>("treeName", "unpacker_data/hgcroc");
   desc.add<std::vector<std::string>>("inputs", {})
@@ -329,8 +329,8 @@ void HGCalECONDEmulator::fillDescriptions(edm::ConfigurationDescriptions& descri
 
   desc.add<bool>("storeEmulatorInfo", true)
       ->setComment("also append a 'truth' auxiliary info to the output event content");
-  descriptions.add("hgcalEmulatedECONDRawData", desc);
+  descriptions.add("hgcalEmulatedRawData", desc);
 }
 
 // define this as a plug-in
-DEFINE_FWK_MODULE(HGCalECONDEmulator);
+DEFINE_FWK_MODULE(HGCalDigiToRaw);
