@@ -14,8 +14,8 @@
 #include "DataFormats/FEDRawData/interface/FEDHeader.h"
 #include "DataFormats/FEDRawData/interface/FEDTrailer.h"
 
-#include "EventFilter/HGCalRawToDigi/interface/RawDataPackingTools.h"
-#include "EventFilter/HGCalRawToDigi/interface/HGCalDigiToRawInfo.h"
+#include "EventFilter/HGCalRawToDigi/interface/HGCalRawDataPackingTools.h"
+#include "DataFormats/HGCalDigi/interface/HGCalRawDataEmulatorInfo.h"
 
 #include "CLHEP/Random/RandFlat.h"
 #include "TChain.h"
@@ -71,7 +71,7 @@ private:
 
   edm::Service<edm::RandomNumberGenerator> rng_;
   edm::EDPutTokenT<FEDRawDataCollection> fedRawToken_;
-  edm::EDPutTokenT<HGCalDigiToRawInfo> fedEmulInfoToken_;
+  edm::EDPutTokenT<HGCalECONDEmulatorInfo> fedEmulInfoToken_;
 };
 
 HGCalDigiToRaw::HGCalDigiToRaw(const edm::ParameterSet& iConfig)
@@ -93,7 +93,7 @@ HGCalDigiToRaw::HGCalDigiToRaw(const edm::ParameterSet& iConfig)
 
   fedRawToken_ = produces<FEDRawDataCollection>();
   if (store_emul_info_)
-    fedEmulInfoToken_ = produces<HGCalDigiToRawInfo>();
+    fedEmulInfoToken_ = produces<HGCalECONDEmulatorInfo>();
 }
 
 void HGCalDigiToRaw::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -149,14 +149,14 @@ void HGCalDigiToRaw::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
 
   // store the emulation information if requested
   if (store_emul_info_) {
-    HGCalDigiToRawInfo emul_info(header_bits.bitO,
-                                     header_bits.bitB,
-                                     header_bits.bitE,
-                                     header_bits.bitT,
-                                     header_bits.bitH,
-                                     header_bits.bitS,
-                                     enabled_channels);
-    iEvent.emplace(fedEmulInfoToken_, std::move(emul_info));
+    HGCalECONDEmulatorInfo econd_info(header_bits.bitO,
+                                      header_bits.bitB,
+                                      header_bits.bitE,
+                                      header_bits.bitT,
+                                      header_bits.bitH,
+                                      header_bits.bitS,
+                                      enabled_channels);
+    iEvent.emplace(fedEmulInfoToken_, std::move(econd_info));
   }
   ++it_data_;
 }

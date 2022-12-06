@@ -1,4 +1,4 @@
-#include "EventFilter/HGCalRawToDigi/interface/HGCalEmulatorInfo.h"
+#include "DataFormats/HGCalDigi/interface/HGCalRawDataEmulatorInfo.h"
 
 HGCalECONDEmulatorInfo::HGCalECONDEmulatorInfo(
     bool obit, bool bbit, bool ebit, bool tbit, bool hbit, bool sbit, std::vector<uint64_t> enabled_channels) {
