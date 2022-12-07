@@ -1,5 +1,5 @@
 #include "DataFormats/HGCalDigi/interface/HGCalDigiCollections.h"
-#include "SimCalorimetry/HGCalSimProducers/interface/HGCFEElectronics.h"
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCROCEmulator.h"
 
 #include "FWCore/FWLite/interface/AutoLibraryLoader.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -43,25 +43,25 @@ void massert(bool cond,
 //
 int main(int argc, char **argv) {
   //if passed at command line use new cfi to configure the electronics emulator
-  std::string url("SimCalorimetry/HGCalSimProducers/python/hgcROCParameters_cfi.py");
+  std::string url("SimCalorimetry/HGCalSimAlgos/python/hgcrocEmulator_cfi.py");
   if (argc > 1)
     url = argv[1];
   url = edm::FileInPath(url).fullPath();
 
   //get configuration and instantiate the ROC emulator
   const std::shared_ptr<edm::ParameterSet> &pset = edm::readPSetsFrom(url);
-  const edm::ParameterSet &cfg = pset->getParameter<edm::ParameterSet>("hgcROCSettings");
+  const edm::ParameterSet &cfg = pset->getParameter<edm::ParameterSet>("hgcrocEmulator");
   float adcFSC = cfg.getParameter<double>("adcFSC");
+  float totFSC = cfg.getParameter<double>("totFSC");
   float toaOnset = cfg.getParameter<double>("toaOnset");
   float toaFSC = cfg.getParameter<double>("toaFSC");
   float totOnset = cfg.getParameter<double>("totOnset");
-  float totFSC = cfg.getParameter<double>("totFSC");
 
-  std::cout << "Testing HGCFEElectronics class with the following configuration:" << std::endl;
+  std::cout << "Testing HGCROCEmulator class with the following configuration:" << std::endl;
   std::cout << cfg << std::endl << std::endl;
 
   //simulated data arrays
-  hgc_digi::HGCSimHitData chargeColl, toa;
+  HGCROCSimHitData chargeColl, toa;
   size_t itbx(9);
 
   //output dataframe
@@ -72,18 +72,18 @@ int main(int argc, char **argv) {
   hre->setSeed(0);
 
   //digitizer
-  HGCFEElectronics<HGCROCChannelDataFrameSpec> roc(cfg);
+  HGCROCEmulator<HGCROCChannelDataFrameSpec> roc(cfg);
   roc.configureNoise(0.f);
   float adcLSB(roc.adcLSB()), totLSB(roc.totLSB()), toaLSB(roc.toaLSB());
-  hgc_digi::FEADCPulseShape pulseShape = roc.adcPulse();
+  HGCROCPreampPulseShape pulseShape = roc.adcPulse();
 
   //TEST: in-time charge deposits only
   //do once in default mode and another in characterization mode
   chargeColl.fill(0.f);
   toa.fill(0.f);
   for (size_t m = 0; m < 2; m++) {
-    roc.configureMode(m == 0 ? roc.HGCFEElectronicsOperationMode::DEFAULT
-                             : roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
+    roc.configureMode(m == 0 ? roc.HGCROCOperationMode::DEFAULT
+                             : roc.HGCROCOperationMode::CHARACTERIZATION);
 
     for (int i = 0; i < NTRIALS; i++) {
       //prepare charge/time injection
@@ -94,9 +94,9 @@ int main(int argc, char **argv) {
       //run and check digitization output
       roc.run(dfr, chargeColl, toa, hre, itbx);
       uint16_t digitoa = dfr.toa();
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
-      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
 
       //no ADC for BX-1 in all cases
       massert(adcm1 == 0, dfr, chargeColl, toa);
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
       if (qin < totOnset) {
         massert(!dfr.tc(), dfr, chargeColl, toa, "Expect Tc=0");
         massert(!dfr.tp(), dfr, chargeColl, toa, "Expect Tp=0");
-        if (roc.opMode() == roc.HGCFEElectronicsOperationMode::DEFAULT) {
+        if (roc.opMode() == roc.HGCROCOperationMode::DEFAULT) {
           massert(dfr.tot() == 0, dfr, chargeColl, toa, "Expect ToT=0");
         }
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
       else {
         massert(dfr.tc(), dfr, chargeColl, toa, "Expect Tc=1");
         massert(dfr.tp(), dfr, chargeColl, toa, "Expect Tp=1");
-        if (roc.opMode() == roc.HGCFEElectronicsOperationMode::DEFAULT) {
+        if (roc.opMode() == roc.HGCROCOperationMode::DEFAULT) {
           massert(adc == 0, dfr, chargeColl, toa, "Expect ADC=0");
         }
         int delta = floor(fabs(qin / totLSB - (tot + 0.5)));
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
   //test ADC <-> TOT transition in default mode
   //scan the neighborhood of the totOnset threshold
   //firs in steps of adcLSB, second in steps of tdcLSB
-  roc.configureMode(roc.HGCFEElectronicsOperationMode::DEFAULT);
+  roc.configureMode(roc.HGCROCOperationMode::DEFAULT);
   toa.fill(0.f);
   chargeColl.fill(0.f);
   for (size_t k = 0; k < 2; k++) {
@@ -150,8 +150,8 @@ int main(int argc, char **argv) {
       float qin = totOnset + i * deltaqin;
       chargeColl[itbx] = qin;
       roc.run(dfr, chargeColl, toa, hre, itbx);
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
 
       if (i < 0) {
         massert(tot == 0, dfr, chargeColl, toa, "Unexpected ToT measurement");
@@ -169,8 +169,8 @@ int main(int argc, char **argv) {
   //test charge injection @ BX-1 (within ADC range)
   //inject random charge in BX-1 and check the leakage
   for (size_t m = 0; m < 2; m++) {
-    roc.configureMode(m == 0 ? roc.HGCFEElectronicsOperationMode::DEFAULT
-                             : roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
+    roc.configureMode(m == 0 ? roc.HGCROCOperationMode::DEFAULT
+                             : roc.HGCROCOperationMode::CHARACTERIZATION);
 
     toa.fill(0.f);
     chargeColl.fill(0.f);
@@ -180,9 +180,9 @@ int main(int argc, char **argv) {
       chargeColl[itbx - 1] = qin;
       roc.run(dfr, chargeColl, toa, hre, itbx);
 
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
-      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
 
       //both operation modes check resolution of leaked pulse in BX
       float qleak = qin * pulseShape[3];
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
       massert(delta < 1, dfr, chargeColl, toa, "Leaked charge has poor resolution");
 
       //mode==CHAR : check ADC BX-1 = 0 and ADC-TOT resolution
-      if (roc.opMode() == roc.HGCFEElectronicsOperationMode::CHARACTERIZATION) {
+      if (roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION) {
         massert(adcm1 == 0, dfr, chargeColl, toa, "Unexpected ADC BX-1 reading");
 
         float delta = fabs((adc + 0.5) * adcLSB - (tot + 0.5) * totLSB);

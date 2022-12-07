@@ -4,8 +4,8 @@
   <use name="DataFormats/DetId"/>
 </bin>
 
-<bin file="HGCROCAlgoTest.cpp" name="HGCROCAlgoTest">
-  <flags TEST_RUNNER_ARGS=" SinCalorimetery/HGCalSimAlgos/test/hgcrocAlgoTest_cfg.py"/>
+<bin file="HGCROCEmulatorTest.cpp" name="HGCROCEmulatorTest">
+  <flags TEST_RUNNER_ARGS=" SimCalorimetery/HGCalSimAlgos/python/hgcrocEmulator_cfi.py"/>
   <use name="FWCore/ParameterSetReader"/>
   <use name="DataFormats/HGCalDigi"/>
   <use name="SimCalorimetry/HGCalSimProducers"/>

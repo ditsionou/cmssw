@@ -1,5 +1,5 @@
-#ifndef SimCalorimetry_HGCalSimAlgos_HGCROCAlgos_h
-#define SimCalorimetry_HGCalSimAlgos_HGCROCAlgos_h
+#ifndef SimCalorimetry_HGCalSimAlgos_HGCROCEmulator_h
+#define SimCalorimetry_HGCalSimAlgos_HGCROCEmulator_h
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -10,29 +10,27 @@
 #include "CLHEP/Random/RandGaussQ.h"
 #include "CLHEP/Random/RandFlat.h"
 
+typedef std::array<float, 15> HGCROCSimHitData;
+typedef std::array<bool, 15> HGCROCSimHitFlags;
+typedef std::array<float, 6> HGCROCPreampPulseShape;
+typedef std::array<float, 2> HGCROCTOAJitterParam;
+typedef std::array<float, 5> HGCROCTDCChargeDrainParam;
+
 
 /**
-   @class HGCROCAlgos
+   @class HGCROCEmulator
    @short models the behavior of the front-end electronics
  */
-
-namespace hgc = hgc_digi;
-
-namespace hgc_digi {
-  typedef std::array<float, 6> FEADCPulseShape;
-  typedef std::array<float, 2> FETOAJitterParam;
-  typedef std::array<float, 5> FETDCChargeDrainParam;
-}  // namespace hgc_digi
-
 template <class DFr>
-class HGCROCAlgos {
+class HGCROCEmulator {
 public:
-  enum HGCROCAlgosOperationMode { DEFAULT, CHARACTERIZATION, TRIVIAL };
+
+  enum HGCROCOperationMode { DEFAULT, CHARACTERIZATION, TRIVIAL };
 
   /**
      @short CTOR
    */
-  HGCROCAlgos(const edm::ParameterSet& ps);
+  HGCROCEmulator(const edm::ParameterSet& ps);
 
   /**
      @short 
@@ -44,8 +42,8 @@ public:
      itbx - the in-time index to use
    */
   inline void run(DFr& dataFrame,
-                  hgc::HGCSimHitData& chargeColl,
-                  hgc::HGCSimHitData& toaColl,
+                  HGCROCSimHitData& chargeColl,
+                  HGCROCSimHitData& toaColl,
                   CLHEP::HepRandomEngine* engine,
                   short itbx = 9) {
     if (opMode_ == TRIVIAL)
@@ -61,7 +59,7 @@ public:
      toa - time of arrival per bunch
      itbx - the in-time index to use
    */
-  void digitizeTrivial(DFr& dataFrame, hgc::HGCSimHitData& chargeColl, hgc::HGCSimHitData& toaColl, short itbx);
+  void digitizeTrivial(DFr& dataFrame, HGCROCSimHitData& chargeColl, HGCROCSimHitData& toaColl, short itbx);
 
   /**
      @short runs the digitization routine to fill the dataframe
@@ -74,15 +72,15 @@ public:
      itbx - the in-time index to use
   */
   void digitize(DFr& dataFrame,
-                hgc::HGCSimHitData& chargeColl,
-                hgc::HGCSimHitData& toaColl,
+                HGCROCSimHitData& chargeColl,
+                HGCROCSimHitData& toaColl,
                 CLHEP::HepRandomEngine* engine,
                 short itbx);
 
   /**
      @short operation mode
    */
-  HGCROCAlgosOperationMode opMode() const { return opMode_; }
+  HGCROCOperationMode opMode() const { return opMode_; }
 
   /**
      @short returns least-significant bit of the ADC
@@ -107,7 +105,7 @@ public:
   /**
      @short returns pulse shape leakage to neighboring bunches
    */
-  hgc_digi::FEADCPulseShape adcPulse() const { return adcPulse_; }
+  HGCROCPreampPulseShape adcPulse() const { return adcPulse_; }
 
   /**
      @short returns least-significant bit of the TDC used for time-of-arrival measurement
@@ -133,12 +131,7 @@ public:
      @short returns max value of the TDC used to measure time-of-arrival = 2^toaNbits_
    */
   uint16_t toaMax() const { return toaMax_; }
-
-  /**
-     @short returns vector of parameters used to model the ToA jitter
-   */
-  hgc_digi::FETOAJitterParam toaJitterParam() const { return toaJitterParam_; }
-
+  
   /**
      @short returns least-significant bit of the TDC used for time-over-threshold
    */
@@ -167,7 +160,7 @@ public:
   /**
      @short returns the parameters used to model the charge drain after the time-over-threshold period
    */
-  hgc_digi::FETDCChargeDrainParam totChargeDrainParam() const { return totChargeDrainParam_; }
+  HGCROCTDCChargeDrainParam totChargeDrainParam() const { return totChargeDrainParam_; }
 
   /**
      @short configure noise components
@@ -178,22 +171,22 @@ public:
   /**
      @short configure operation mode
   */
-  void configureMode(HGCROCAlgosOperationMode mode);
+  void configureMode(HGCROCOperationMode mode);
 
   /**
      @short configure ADC
      fsc = full scale charge (triggers recomputation of the LSB)
      shape = pulse shape to use
   */
-  void configureADC(float fsc, hgc_digi::FEADCPulseShape shape);
+  void configureADC(float fsc, HGCROCPreampPulseShape shape);
 
   /**
      @short configure time of arrival
      fsc = dynamical range (ns) (triggers recomputation of the LSB)
      onset = charge after which toa is computed
-     toaJitterParam = {stochastic, constant} for the smearing of the toa
+     toa{jitter,clkoff} = {stochastic, constant} for the smearing of the toa
   */
-  void configureTOA(float fsc, float onset, hgc_digi::FETOAJitterParam toaJitterParam);
+  void configureTOA(float fsc, float onset, float toajitter, float toaclkoff);
 
   /**
      @short configure time over threshold
@@ -201,20 +194,7 @@ public:
      chargeDrainParam = parameters to use when evaluating how many bunches TOT is busy
      bxUndershoot = additional bunches where the system undershoots the charge
   */
-  void configureTOT(float fsc, float onset, hgc_digi::FETDCChargeDrainParam chargeDrainParam, short bxUndershoot);
-
-  /**
-     @short returns time jitter for time of arrival
-     the jitter is parameterized as sqrt[A2/(S/N) + C2]
-     where A2, C2 are the squares of a stochastic and constant term
-   */
-  float getTimeJitter(float charge) {
-    if (noise_ == 0.f)
-      return 0.f;
-    float sovern = pow(charge / noise_, 2.);
-    float jitter2 = toaJitterParam_[0] / sovern + toaJitterParam_[1];
-    return sqrt(jitter2);
-  };
+  void configureTOT(float fsc, float onset, HGCROCTDCChargeDrainParam chargeDrainParam, short bxUndershoot);
 
   /**
      @short returns charge integration time in TOT mode
@@ -226,11 +206,6 @@ public:
      deltaT2nextBx = the deltaT (ns) to the bunch crossing of interest
   */
   float getToTOnsetLeakage(float deltaT2nextBx);
-
-  /**
-     @short setter for verbosity
-   */
-  void setVerbose(bool flag) { verbose_ = flag; }
   
   /**
      @short getter for configuration
@@ -240,22 +215,31 @@ public:
   /**
      @short DTOR
    */
-  ~HGCROCAlgos() {}
+  ~HGCROCEmulator() {}
 
 private:
-  bool verbose_;
-  HGCROCAlgosOperationMode opMode_;
+
+  /**
+     @short a simple implementation of the time of arrival based on a smearing of the MC truth
+     @params the array of collected charge, time of arrival simulated, the random number generator and the index for the in-time-bunch
+  */
+  float measureToA(HGCROCSimHitData& chargeColl,
+                   HGCROCSimHitData& toaColl,
+                   CLHEP::HepRandomEngine* engine,
+                   short itbx);
+  
+  HGCROCOperationMode opMode_;
   uint16_t adcNbits_, adcMax_, toaNbits_, toaMax_, totNbits_, totMax_, totBxUndershoot_;
   float adcLSB_, adcFSC_, toaLSB_, toaFSC_, toaOnset_, totLSB_, totFSC_, totOnset_;
   float noise_;
-  hgc_digi::FEADCPulseShape adcPulse_;
-  hgc_digi::FETOAJitterParam toaJitterParam_;
-  hgc_digi::FETDCChargeDrainParam totChargeDrainParam_;
+  float toaJitter_, toaClockOffset_;
+  HGCROCPreampPulseShape adcPulse_;
+  HGCROCTDCChargeDrainParam totChargeDrainParam_;
   edm::ParameterSet myCfg_;
 
   //caches
-  std::array<bool, hgc::nSamples> busyFlags_, undershootFlags_, totFlags_, toaFlags_;
-  hgc::HGCSimHitData newCharge_, toaFromToT_;
+  HGCROCSimHitFlags busyFlags_, undershootFlags_, totFlags_, toaFlags_;
+  HGCROCSimHitData newCharge_;
 };
 
 #endif
