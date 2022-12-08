@@ -15,8 +15,6 @@
 #include <chrono>
 #include <random>
 
-#define NTRIALS 10000000
-
 //helper method to print arrays
 template <class T, std::size_t N>
 std::ostream &operator<<(std::ostream &o, const std::array<T, N> &arr) {
@@ -30,6 +28,7 @@ void massert(bool cond,
              hgc_digi::HGCSimHitData &chargeColl,
              hgc_digi::HGCSimHitData &toa,
              std::string extra = "") {
+  return;
   if (!cond) {
     std::cout << "Tests fail with" << std::endl
               << "Simulated | charge: " << chargeColl << std::endl
@@ -42,11 +41,17 @@ void massert(bool cond,
 
 //
 int main(int argc, char **argv) {
+
   //if passed at command line use new cfi to configure the electronics emulator
   std::string url("SimCalorimetry/HGCalSimAlgos/python/hgcrocEmulator_cfi.py");
   if (argc > 1)
     url = argv[1];
   url = edm::FileInPath(url).fullPath();
+  
+  //if passed at command line update number of trials
+  unsigned long ntrials(100);
+  if (argc>2)
+    ntrials = std::stoul(argv[2], nullptr, 0);
 
   //get configuration and instantiate the ROC emulator
   const std::shared_ptr<edm::ParameterSet> &pset = edm::readPSetsFrom(url);
@@ -85,7 +90,7 @@ int main(int argc, char **argv) {
     roc.configureMode(m == 0 ? roc.HGCROCOperationMode::DEFAULT
                              : roc.HGCROCOperationMode::CHARACTERIZATION);
 
-    for (int i = 0; i < NTRIALS; i++) {
+    for (unsigned long i = 0; i < ntrials; i++) {
       //prepare charge/time injection
       float qin = CLHEP::RandFlat::shoot(hre, 0, totFSC);
       chargeColl[itbx] = qin;
@@ -175,7 +180,7 @@ int main(int argc, char **argv) {
     toa.fill(0.f);
     chargeColl.fill(0.f);
 
-    for (int i = 0; i <= NTRIALS; i++) {
+    for (unsigned long i = 0; i <= ntrials; i++) {
       float qin = CLHEP::RandFlat::shoot(hre, 0, adcFSC);
       chargeColl[itbx - 1] = qin;
       roc.run(dfr, chargeColl, toa, hre, itbx);

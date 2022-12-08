@@ -14,7 +14,8 @@ typedef std::array<float, 15> HGCROCSimHitData;
 typedef std::array<bool, 15> HGCROCSimHitFlags;
 typedef std::array<float, 6> HGCROCPreampPulseShape;
 typedef std::array<float, 2> HGCROCTOAJitterParam;
-typedef std::array<float, 5> HGCROCTDCChargeDrainParam;
+typedef std::array<float, 3> HGCROCTDCChargeDrainParam;
+typedef std::array<float, 2> HGCROCTDCChargeDrainJitterParam;
 
 
 /**
@@ -53,7 +54,8 @@ public:
   }
 
   /**
-     @short runs a trivial digitization routine, the dataframe is filled as in characterization mode
+     @short runs a trivial digitization routine ignoring out-of-time pileup, pulse shapes etc.
+     the floating numbers are simply digitized according to the LSB and FSC
      dataFrame - structure to be filled
      chargeColl - simulated charge per bunch
      toa - time of arrival per bunch
@@ -163,6 +165,11 @@ public:
   HGCROCTDCChargeDrainParam totChargeDrainParam() const { return totChargeDrainParam_; }
 
   /**
+     @short returns the parameters use to introduce a jitter in the charge drain after time-over-threshold
+   */
+  HGCROCTDCChargeDrainJitterParam totChargeDrainJitterParam() const {  return totChargeDrainJitterParam_; }
+  
+  /**
      @short configure noise components
      note: this should evolve once the common mode noise model is understood
    */
@@ -194,24 +201,22 @@ public:
      chargeDrainParam = parameters to use when evaluating how many bunches TOT is busy
      bxUndershoot = additional bunches where the system undershoots the charge
   */
-  void configureTOT(float fsc, float onset, HGCROCTDCChargeDrainParam chargeDrainParam, short bxUndershoot);
+  void configureTOT(float fsc,
+                    float onset,
+                    HGCROCTDCChargeDrainParam chargeDrainParam,
+                    HGCROCTDCChargeDrainJitterParam chargeDrainJitterParam,
+                    short bxUndershoot);
 
   /**
-     @short returns charge integration time in TOT mode
-   */
-  float getChargeIntegrationTime(float charge, CLHEP::HepRandomEngine* engine = nullptr);
-
-  /**
-     @short returns the post-TOT charge leakage to a neighboring bunch
-     deltaT2nextBx = the deltaT (ns) to the bunch crossing of interest
+     @short returns charge integration time, in units of bunch crossings, when in TOT mode
   */
-  float getToTOnsetLeakage(float deltaT2nextBx);
+  int16_t getChargeIntegrationTime(float charge, CLHEP::HepRandomEngine* engine = nullptr);
   
   /**
      @short getter for configuration
    */
   edm::ParameterSet cfg() const { return myCfg_; }
-
+  
   /**
      @short DTOR
    */
@@ -227,6 +232,25 @@ private:
                    HGCROCSimHitData& toaColl,
                    CLHEP::HepRandomEngine* engine,
                    short itbx);
+
+  /**
+     @short determines which bunches will trigger ToT
+     The algorithm is iterative and integration time needs to be updated depending on the charge which is accumulated while in ToT mode or which leaks from previous bunches
+     The cache for newCharge_ will be updated with the final measurements
+   */
+  void measureChargeWithTOT(HGCROCSimHitData& chargeColl);
+  
+  /**
+     @short convolve the pulse shape with the charge accumulated in each bunch
+     The cache for newCharge_ will be updated with the final measurements
+   */
+  void measureChargeWithADCPreamp(HGCROCSimHitData& chargeColl);
+  
+  /**
+     @short resets the caches used in the digitization
+  */
+  void resetCaches();
+
   
   HGCROCOperationMode opMode_;
   uint16_t adcNbits_, adcMax_, toaNbits_, toaMax_, totNbits_, totMax_, totBxUndershoot_;
@@ -235,10 +259,11 @@ private:
   float toaJitter_, toaClockOffset_;
   HGCROCPreampPulseShape adcPulse_;
   HGCROCTDCChargeDrainParam totChargeDrainParam_;
+  HGCROCTDCChargeDrainJitterParam totChargeDrainJitterParam_;
   edm::ParameterSet myCfg_;
 
   //caches
-  HGCROCSimHitFlags busyFlags_, undershootFlags_, totFlags_, toaFlags_;
+  HGCROCSimHitFlags busyFlags_, totFlags_, toaFlags_;
   HGCROCSimHitData newCharge_;
 };
 
