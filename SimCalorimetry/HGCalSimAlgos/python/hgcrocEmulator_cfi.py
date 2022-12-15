@@ -15,6 +15,10 @@ The main parameters are the following
 * toaFSC - "full scale charge" for the toa measurement in ns
 * toaJitter - jitter for the stochastic component of the time-of-arrival (ns)
 * toaClockOffset - clock offset used to generate the constant term (ns)
+* pedestal - baseline pedestal in fC
+* noiseJitter - the stochastic component of the noise used for smearing
+* commonNoise - common mode in fC (in practice will be added to the pedestal but it's useful have as separate component)
+
 """
 hgcrocEmulator = cms.PSet( 
     opMode = cms.uint32(0),
@@ -29,6 +33,9 @@ hgcrocEmulator = cms.PSet(
     toaFSC = cms.double(25.),
     toaJitter = cms.double(25.),
     toaClockOffset = cms.double(0.02),
-    pulseAvgT         = cms.vdouble(0.00, 23.42298,13.16733,6.41062,5.03946,4.5320),
-    tdcResolutionInPs = cms.double( 0.001 )
+    pulseAvgT = cms.vdouble(0., 0., 1.0, 0.0963/0.9037, 0., 0.),
+    tdcResolutionInPs = cms.double( 0.001 ),
+    pedestal = cms.double(0.),
+    noiseJitter = cms.double(0.4),
+    commonNoise = cms.double(0.)
 )

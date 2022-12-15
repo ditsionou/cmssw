@@ -45,6 +45,11 @@ HGCROCEmulator<DFr>::HGCROCEmulator(const edm::ParameterSet& ps) {
   toaJitter_ = ps.getParameter<double>("toaJitter");
   toaClockOffset_ = ps.getParameter<double>("toaClockOffset");
   configureTOA(toaFSC_, toaOnset_, toaJitter_, toaClockOffset_);
+
+  //noise parameters
+  pedestal_ = ps.getParameter<double>("pedestal");
+  noiseJitter_ = ps.getParameter<double>("noiseJitter");
+  commonNoise_ = ps.getParameter<double>("commonNoise");
 }
 
 //
@@ -69,6 +74,14 @@ void HGCROCEmulator<DFr>::configureTOA(float fsc, float onset, float toajitter, 
   toaOnset_ = onset;
   toaJitter_ = toajitter;
   toaClockOffset_ = toaclkoff;
+}
+
+//
+template <class DFr>
+void HGCROCEmulator<DFr>::configureNoise(float ped, float jitter, float cm) {
+  pedestal_=ped;
+  noiseJitter_=jitter;
+  commonNoise_=cm;
 }
 
 //
@@ -102,6 +115,7 @@ int16_t HGCROCEmulator<DFr>::getChargeIntegrationTime(float charge, CLHEP::HepRa
     busyBx = CLHEP::RandGaussQ::shoot(engine, busyBx, busySigma);
   }
 
+  //block additional bunches where the charge is expected to undershoot the baseline
   busyBx += totBxUndershoot_;
   
   return busyBx;
@@ -112,16 +126,18 @@ template <class DFr>
 void HGCROCEmulator<DFr>::digitizeTrivial(DFr& dataFrame,
                                           HGCROCSimHitData& chargeColl,
                                           HGCROCSimHitData& toaColl,
+                                          CLHEP::HepRandomEngine* engine,
+                                          bool addNoise,
                                           short itbx) {
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("HGCROCEmulator::digitizeTrivial") << "[digitizeTrivial]" << std::endl;
 #endif
 
-  resetCaches();
+  resetCaches(engine);
   
   //check if tot is to be triggered based on the charge
   //digitize charge in ADC and TOT modes and time of arrival
-  float charge(chargeColl[itbx]);
+  float charge(chargeColl[itbx] + addNoise*noiseCharge_[itbx]);
   bool tp(false), tc(false);
   if (charge > totOnset_) {
     tc=true;
@@ -131,8 +147,14 @@ void HGCROCEmulator<DFr>::digitizeTrivial(DFr& dataFrame,
   uint32_t adcm1(0);
   uint32_t adc = std::floor(std::min(charge, adcFSC_ - adcLSB_) / adcLSB_);
   uint32_t tot = tc ? std::floor(std::min(charge, totFSC_ - totLSB_) / totLSB_) : 0;
-  uint32_t toa = charge > toaOnset_ ? std::floor(std::min(toaColl[itbx], toaFSC_ - toaLSB_) / toaLSB_) : 0;
+  uint32_t digiToA(std::floor(toaColl[itbx]/toaLSB_));
+  uint32_t toa = charge > toaOnset_ ? digiToA%1024 : 0;
 
+  //update caches (only in-time bunch as this is trivial)
+  newCharge_[itbx] = charge;
+  integTime_[itbx] = float(tc ? getChargeIntegrationTime(charge) : 0.);
+  totFlags_[itbx] = true;
+  
   //fill the dataframe
   dataFrame.fill(opMode_ == HGCROCOperationMode::CHARACTERIZATION, tc, tp, adcm1, adc, tot, toa);
 
@@ -162,8 +184,8 @@ float HGCROCEmulator<DFr>::measureToA(HGCROCSimHitData& chargeColl,
     timeToA = toaColl[itbx];    
 
     //emulate stochastic term ~ A / (S/N)
-    if(noise_>0) {
-      float sovern = chargeColl[itbx] / noise_;
+    if(noiseJitter_>0) {
+      float sovern = chargeColl[itbx] / noiseJitter_;
       float jitter = toaJitter_ / sovern;
       timeToA = CLHEP::RandGaussQ::shoot(engine, timeToA, jitter);
     }
@@ -180,17 +202,52 @@ float HGCROCEmulator<DFr>::measureToA(HGCROCSimHitData& chargeColl,
 
 //
 template <class DFr>
+void HGCROCEmulator<DFr>::generateNoise(CLHEP::HepRandomEngine* engine) {
+  for(size_t i=0; i<noiseCharge_.size(); i++) {
+    noiseCharge_[i] = CLHEP::RandGaussQ::shoot(engine, pedestal_, noiseJitter_) + commonNoise_;
+  }
+}
+
+//
+template <class DFr>
+float HGCROCEmulator<DFr>::estimateLeakage(HGCROCSimHitData& chargeColl, size_t it) {
+
+  //recompute charge to be integrated adding leakage from previous bunches in SARS ADC mode
+  float leakCharge(0.f);
+  for (size_t jt = 0; jt < it; ++jt) {
+    if(chargeColl[jt] == 0.f || totFlags_[jt] || busyFlags_[jt]) continue;
+    const size_t deltaT = (it - jt);
+    if ((deltaT + 2) >= adcPulse_.size()) continue;
+    leakCharge += chargeColl[jt] * adcPulse_[deltaT + 2];
+  }
+#ifdef EDM_ML_DEBUG
+  edm::LogVerbatim("HGCROCEmulator::estimateLeakage") << "Leakage estimated is " << leakCharge << "fC" << std::endl;
+#endif
+  
+  return leakCharge;
+}
+
+
+
+//
+template <class DFr>
 void HGCROCEmulator<DFr>::digitize(DFr& dataFrame,
-                                   HGCROCSimHitData& chargeColl,
+                                   HGCROCSimHitData& simChargeColl,
                                    HGCROCSimHitData& toaColl,
-                                   CLHEP::HepRandomEngine* engine,
+                                   CLHEP::HepRandomEngine* engine,                                   
+                                   bool addNoise,
                                    short itbx) {
 
-  resetCaches();
+  resetCaches(engine);
+
+  //add noise
+  HGCROCSimHitData chargeColl;
+  for(size_t i=0; i<chargeColl.size(); i++)
+    chargeColl[i] = simChargeColl[i] + addNoise*noiseCharge_[i];
   
   //get time-of-arrival
   float timeToA = this->measureToA(chargeColl,toaColl,engine,itbx);
-
+  
   //TOT charge measurements must be estimated first
   this->measureChargeWithTOT(chargeColl);
 
@@ -215,10 +272,15 @@ void HGCROCEmulator<DFr>::digitize(DFr& dataFrame,
   //note: in principle the TOT has an intrinsic offset but this is ignored for the moment
   uint16_t adc(0), toa(0), tot(0);
   if (!busyFlags_[itbx]) {
+
+    //adc and tot saturate
     adc = std::floor(std::min(newCharge_[itbx], adcFSC_ - adcLSB_) / adcLSB_);
     if (totFlags_[itbx] || opMode_ == HGCROCOperationMode::CHARACTERIZATION)
       tot = std::floor(std::min(newCharge_[itbx], totFSC_ - totLSB_) / totLSB_);
-    toa = newCharge_[itbx] > toaOnset_ ? std::floor(std::min(timeToA, toaFSC_ - toaLSB_) / toaLSB_) : 0;
+
+    //toa cycles...
+    uint32_t digiToA(std::floor(timeToA/toaLSB_));
+    toa = newCharge_[itbx] > toaOnset_ ? digiToA%1024 : 0;
   }
 
   dataFrame.fill(opMode_ == HGCROCOperationMode::CHARACTERIZATION, tc, tp, adcm1, adc, tot, toa);
@@ -241,75 +303,58 @@ void HGCROCEmulator<DFr>::measureChargeWithTOT(HGCROCSimHitData& chargeColl) {
 
     //if already flagged as busy it can't be re-used to trigger the ToT
     if (busyFlags_[it]) continue;
+
+    //first estimate of the charge only takes into account leakage charge and the in-time charge
+    float leakCharge=this->estimateLeakage(chargeColl,it);
+    float charge=chargeColl[it] + leakCharge;
     
-    float charge = chargeColl[it];
-    
-    //if below TDC onset will be handled by the ADC later
+    //if below TDC onset, this will be handled by the ADC later
     if (charge < totOnset_) continue;
-    
-    //raise TDC mode for charge computation
-    totFlags_[it] = true;
-    
+        
 #ifdef EDM_ML_DEBUG
-    edm::LogVerbatim("HGCROCEmulator") << "HGCROCEmulator::digitize"
-      << "\t q=" << charge << " fC with triggers ToT @ " << it << std::endl;
+    edm::LogVerbatim("HGCROCEmulator::digitize")
+      << "\t q=" << charge << " fC (leak="<< leakCharge << " fC) "
+      << " triggers ToT @ " << it << "-th bunch" << std::endl;
 #endif
     
     //compute total charge to be integrated and integration time
-    //needs a loop as ToT will last as long as there is charge to dissipate
-    int16_t busyBxs(0);
-    float totalCharge(charge);
-    bool addLeak(true);
-    while (true) {
-      
-      //compute integration time in #bunches
-      //if no update is needed regarding the number of bunches, then the ToT integration time has converged
-      //and the infinite while is made collapse
-      const int16_t newBusyBxs = getChargeIntegrationTime(totalCharge);
-      if (newBusyBxs == busyBxs) break;
+    //raise TOT mode for charge computation
+    totFlags_[it] = true;
+    int16_t busyBxs = getChargeIntegrationTime(charge);    
 #ifdef EDM_ML_DEBUG
-      if (busyBxs == 0)
-        edm::LogVerbatim("HGCROCEmulator") << "\t Intial busy estimate=" << newBusyBxs << " bxs" << std::endl;
-      else
-        edm::LogVerbatim("HGCROCEmulator")
-          << "\t ...updating initial busy estimate to " << newBusyBxs << " bxs, iterating again" << std::endl;
+    edm::LogVerbatim("HGCROCEmulator") << "\t Intial busy estimate=" << newBusyBxs << " bxs" << std::endl;    
 #endif
-    
-      //update number of busy bunches
-      busyBxs = newBusyBxs;
-      
-      //recompute charge to be integrated adding leakage from previous bunches in SARS ADC mode
-      //this only needs to be done once
-      if(addLeak) {
-        for (size_t jt = 0; jt < it; ++jt) {
-          const size_t deltaT = (it - jt);
-          if ((deltaT + 2) >= adcPulse_.size() || chargeColl[jt] == 0.f || totFlags_[jt] || busyFlags_[jt])
-            continue;
-          totalCharge += chargeColl[jt] * adcPulse_[deltaT + 2];
-        }
-#ifdef EDM_ML_DEBUG
-        edm::LogVerbatim("HGCROCEmulator") << "\t\t adding leakage charge new estimate is " << totalCharge << "fC" << std::endl;
-#endif
-        addLeak=false;
-      }
 
-      //add contamination from posterior bunches if they haven't yet been flagged as busy in a previous iteration
+    //add contamination from posterior bunches
+    //if they haven't yet been flagged as busy in a previous iteration
+    //the loop ends when the charge integration time has stabilized
+    while(true) {
+      
       for (size_t jt = it + 1; jt < it + busyBxs && jt < chargeColl.size(); ++jt) {
         if(busyFlags_[jt]) continue;
         busyFlags_[jt] = true;
-        totalCharge += chargeColl[jt];
+        charge += chargeColl[jt];
 #ifdef EDM_ML_DEBUG
-        edm::LogVerbatim("HGCROCEmulator") << "\t\t adding charge @ bx +" << (jt-it) << " new estimate is" << totalCharge << "fC" << std::endl;
+        edm::LogVerbatim("HGCROCEmulator")
+          << "\t\t adding charge @ bx +" << (jt-it)
+          << " new estimate is " << charge << " fC" << std::endl;
 #endif
-      } 
-    }
+      }
 
+      //check if this has converged
+      uint16_t updatedBusyBxs = getChargeIntegrationTime(charge);
+      if(updatedBusyBxs==busyBxs) break;
+      busyBxs=updatedBusyBxs;
+    }
+    
     //final integrated charge in ToT
-    newCharge_[it] = totalCharge;
+    newCharge_[it] = charge;
+    integTime_[it] = busyBxs;
+
 #ifdef EDM_ML_DEBUG
-    std::cout << "HGCROCEmulator::digitize"
+    edm::LogVerbatim("HGCROCEmulator")
       << "\t Final busy estimate=" << busyBxs << " bxs" << std::endl
-      << "\t Total integrated=" << totalCharge << " fC" << std::endl;
+      << "\t Total integrated=" << charge << " fC" << std::endl;
 #endif
   }
   
@@ -344,13 +389,61 @@ void HGCROCEmulator<DFr>::measureChargeWithADCPreamp(HGCROCSimHitData& chargeCol
 
 //
 template <class DFr>
-void HGCROCEmulator<DFr>::resetCaches() {
+void HGCROCEmulator<DFr>::resetCaches(CLHEP::HepRandomEngine* engine) {
   toaFlags_.fill(false);
   busyFlags_.fill(false);
   totFlags_.fill(false);
-  newCharge_.fill(0.f);  
+  newCharge_.fill(0.f);
+  integTime_.fill(0.f);
+  generateNoise(engine);
 }
 
+
+//
+template <class DFr>
+float HGCROCEmulator<DFr>::getENCs(float gain,float cap) {
+  if(gain==80)  return 0.000017*pow(cap,2)+0.0033*cap+0.1269;
+  if(gain==160) return 0.000017*pow(cap,2)+0.0021*cap+0.1903;
+  if(gain==320) return 0.000023*pow(cap,2)+0.0011*cap+0.3451;
+  return 0.;
+}
+
+//
+template <class DFr>
+float HGCROCEmulator<DFr>::getENCp(float gain,float ileak) {
+
+  if(gain==80){
+    if(ileak>34.22) return 0.00228*pow(ileak,2)+-0.15429*ileak+2.92155;
+    else if(ileak>29.57) return 0.00180*pow(ileak,2)+-0.10225*ileak+1.74070;
+    else if(ileak>24.68) return 0.00122*pow(ileak,2)+-0.05270*ileak+0.82095;
+    else if(ileak>19.79) return 0.00097*pow(ileak,2)+-0.03050*ileak+0.45769;
+    else if(ileak>14.58) return 0.00063*pow(ileak,2)+-0.00800*ileak+0.18280;
+    else if(ileak>9.83) return 0.00020*pow(ileak,2)+0.01021*ileak+0.04443;
+    else if(ileak>4.80) return -0.00023*pow(ileak,2)+0.02150*ileak+0.01669;
+    return -0.00149*pow(ileak,2)+0.03648*ileak+0.02429;
+  }
+  if(gain==160){
+    if(ileak>34.22) return 0.00081*pow(ileak,2)+-0.04680*ileak+0.95977;
+    else if(ileak>29.47) return 0.00064*pow(ileak,2)+-0.02779*ileak+0.55068;
+    else if(ileak>24.63) return 0.00060*pow(ileak,2)+-0.02028*ileak+0.39420;
+    else if(ileak>19.75) return 0.00054*pow(ileak,2)+-0.01162*ileak+0.25168;
+    else if(ileak>14.63) return 0.00034*pow(ileak,2)+0.00200*ileak+0.10092;
+    else if(ileak>9.74) return 0.00016*pow(ileak,2)+0.01155*ileak+0.03837;
+    else if(ileak>4.85) return -0.00015*pow(ileak,2)+0.02084*ileak+0.01906;
+    return -0.00172*pow(ileak,2)+0.03924*ileak+0.02344;
+  }
+  if(gain==320){
+    if(ileak>34.17) return 0.00031*pow(ileak,2)+-0.01268*ileak+0.36704;
+    else if(ileak>29.33) return 0.00026*pow(ileak,2)+-0.00615*ileak+0.23206;
+    else if(ileak>24.58) return 0.00021*pow(ileak,2)+-0.00019*ileak+0.12965;
+    else if(ileak>19.70) return 0.00015*pow(ileak,2)+0.00501*ileak+0.06792;
+    else if(ileak>14.58) return 0.00014*pow(ileak,2)+0.00797*ileak+0.04938;
+    else if(ileak>9.74) return -0.00002*pow(ileak,2)+0.01479*ileak+0.01662;
+    else if(ileak>4.94) return -0.00021*pow(ileak,2)+0.02039*ileak+0.01977;
+    return -0.00166*pow(ileak,2)+0.03746*ileak+0.02337;
+  }
+  return 0.f;
+}
 
 // trigger the compiler to generate the appropriate code
 #include "DataFormats/HGCalDigi/interface/HGCalDigiCollections.h"

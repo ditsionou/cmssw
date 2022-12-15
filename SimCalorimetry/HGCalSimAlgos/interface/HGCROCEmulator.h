@@ -40,17 +40,19 @@ public:
      chargeColl - simulated charge per bunch
      toaColl - time of arrival per bunch
      engine - a random number generator engine
+     addNoise - include noise generation
      itbx - the in-time index to use
    */
   inline void run(DFr& dataFrame,
                   HGCROCSimHitData& chargeColl,
                   HGCROCSimHitData& toaColl,
                   CLHEP::HepRandomEngine* engine,
+                  bool addNoise,
                   short itbx = 9) {
     if (opMode_ == TRIVIAL)
-      digitizeTrivial(dataFrame, chargeColl, toaColl, itbx);
+      digitizeTrivial(dataFrame, chargeColl, toaColl, engine, addNoise, itbx);
     else
-      digitize(dataFrame, chargeColl, toaColl, engine, itbx);
+      digitize(dataFrame, chargeColl, toaColl, engine, addNoise, itbx);
   }
 
   /**
@@ -59,9 +61,11 @@ public:
      dataFrame - structure to be filled
      chargeColl - simulated charge per bunch
      toa - time of arrival per bunch
-     itbx - the in-time index to use
+     engine - used to draw random numbers
+     addNoise - by default no noise is added
+     itbx - the in-time index to use (9 by default)
    */
-  void digitizeTrivial(DFr& dataFrame, HGCROCSimHitData& chargeColl, HGCROCSimHitData& toaColl, short itbx);
+  void digitizeTrivial(DFr& dataFrame, HGCROCSimHitData& chargeColl, HGCROCSimHitData& toaColl, CLHEP::HepRandomEngine* engine, bool addNoise=false,short itbx=9);
 
   /**
      @short runs the digitization routine to fill the dataframe
@@ -71,19 +75,37 @@ public:
      chargeColl - simulated charge per bunch
      toaColl - time of arrival per bunch
      engine - a random number generator engine
-     itbx - the in-time index to use
+     addNoise - by default noise is added
+     itbx - the in-time index to use (9 by default)
   */
   void digitize(DFr& dataFrame,
                 HGCROCSimHitData& chargeColl,
                 HGCROCSimHitData& toaColl,
                 CLHEP::HepRandomEngine* engine,
-                short itbx);
+                bool addNoise=true,
+                short itbx=9);
+
+  /**
+     @short returns the current charge estimations including leakage and busy state effects
+   */
+  const HGCROCSimHitData &currentCharges() { return newCharge_; }
+
+  /**
+     @short returns the current TOT integration time estimations
+   */
+  const HGCROCSimHitData &currentIntegrationTimes() { return integTime_; }
+
+  /**
+     @short returns the generated noise vector
+  */
+  const HGCROCSimHitData &currentNoise() { return noiseCharge_; }
+  
 
   /**
      @short operation mode
    */
   HGCROCOperationMode opMode() const { return opMode_; }
-
+  
   /**
      @short returns least-significant bit of the ADC
    */
@@ -170,12 +192,6 @@ public:
   HGCROCTDCChargeDrainJitterParam totChargeDrainJitterParam() const {  return totChargeDrainJitterParam_; }
   
   /**
-     @short configure noise components
-     note: this should evolve once the common mode noise model is understood
-   */
-  void configureNoise(float noise) { noise_=noise; }
-
-  /**
      @short configure operation mode
   */
   void configureMode(HGCROCOperationMode mode);
@@ -195,6 +211,14 @@ public:
   */
   void configureTOA(float fsc, float onset, float toajitter, float toaclkoff);
 
+  /**
+     @short configures the noise parameters
+     ped - pedestal
+     jitter - stochastic component
+     cm - common mode
+   */
+  void configureNoise(float ped, float jitter,float cm);
+  
   /**
      @short configure time over threshold
      fsc = dynamical range (ns) (triggers recomputation of the LSB)
@@ -216,6 +240,16 @@ public:
      @short getter for configuration
    */
   edm::ParameterSet cfg() const { return myCfg_; }
+
+  /**
+     @short evaluates the expected parallel component to the noise for a given gain and sensor capacitance
+   */
+  float getENCs(float gain,float cap);
+
+  /**
+     @short evalutes the expected series component to the noise for a given gain and leakage current
+   */
+  float getENCp(float gain,float ileak);
   
   /**
      @short DTOR
@@ -224,6 +258,18 @@ public:
 
 private:
 
+  /**
+     @short generates the noise bunch-by-bunch
+   */
+  void generateNoise(CLHEP::HepRandomEngine* engine);
+  
+  /**
+     @short generates a common mode word
+     At the moment this is a rather simple call to the noise smearing including a pedestal and 
+     common mode value configured.
+   */
+  float generateCMWord(CLHEP::HepRandomEngine* engine);
+  
   /**
      @short a simple implementation of the time of arrival based on a smearing of the MC truth
      @params the array of collected charge, time of arrival simulated, the random number generator and the index for the in-time-bunch
@@ -245,17 +291,24 @@ private:
      The cache for newCharge_ will be updated with the final measurements
    */
   void measureChargeWithADCPreamp(HGCROCSimHitData& chargeColl);
+
+  /**
+     @short estimates leakage to the bunch crossing it using the configured pre-amp charge
+     All busy/tot flags which have been set will be used to skip bunch crossings in those states
+   */
+  float estimateLeakage(HGCROCSimHitData& chargeColl, size_t it);
   
   /**
      @short resets the caches used in the digitization
+     it's also used to trigger the generation of noise
   */
-  void resetCaches();
+  void resetCaches(CLHEP::HepRandomEngine* engine);
 
-  
+  //configuration parameters
   HGCROCOperationMode opMode_;
   uint16_t adcNbits_, adcMax_, toaNbits_, toaMax_, totNbits_, totMax_, totBxUndershoot_;
   float adcLSB_, adcFSC_, toaLSB_, toaFSC_, toaOnset_, totLSB_, totFSC_, totOnset_;
-  float noise_;
+  float pedestal_, noiseJitter_, commonNoise_;
   float toaJitter_, toaClockOffset_;
   HGCROCPreampPulseShape adcPulse_;
   HGCROCTDCChargeDrainParam totChargeDrainParam_;
@@ -264,7 +317,7 @@ private:
 
   //caches
   HGCROCSimHitFlags busyFlags_, totFlags_, toaFlags_;
-  HGCROCSimHitData newCharge_;
+  HGCROCSimHitData noiseCharge_, newCharge_,integTime_;
 };
 
 #endif

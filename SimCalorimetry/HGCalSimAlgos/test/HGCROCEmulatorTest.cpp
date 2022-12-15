@@ -78,7 +78,6 @@ int main(int argc, char **argv) {
 
   //digitizer
   HGCROCEmulator<HGCROCChannelDataFrameSpec> roc(cfg);
-  roc.configureNoise(0.f);
   float adcLSB(roc.adcLSB()), totLSB(roc.totLSB()), toaLSB(roc.toaLSB());
   HGCROCPreampPulseShape pulseShape = roc.adcPulse();
 

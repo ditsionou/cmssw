@@ -4,6 +4,13 @@
   <use name="DataFormats/DetId"/>
 </bin>
 
+<library file="HGCalConditionsByAlgoAnalyzer.cc" name="HGCalConditionsByAlgoAnalyzer">
+  <flags EDM_PLUGIN="1"/>
+  <use name="SimCalorimetry/HGCalSimAlgos"/>
+  <use name="CommonTools/UtilAlgos"/>
+  <use name="Geometry/Records"/>
+</library>
+
 <bin file="HGCROCEmulatorTest.cpp" name="HGCROCEmulatorTest">
   <flags TEST_RUNNER_ARGS=" SimCalorimetery/HGCalSimAlgos/python/hgcrocEmulator_cfi.py"/>
   <use name="FWCore/ParameterSetReader"/>
@@ -11,9 +18,10 @@
   <use name="SimCalorimetry/HGCalSimProducers"/>
 </bin>
 
-<library file="HGCalConditionsByAlgoAnalyzer.cc" name="HGCalConditionsByAlgoAnalyzer">
-  <flags EDM_PLUGIN="1"/>
-  <use name="SimCalorimetry/HGCalSimAlgos"/>
-  <use name="CommonTools/UtilAlgos"/>
-  <use name="Geometry/Records"/>
-</library>
+<bin file="HGCROCEmulatorProfiler.cpp" name="HGCROCEmulatorProfiler">
+  <flags TEST_RUNNER_ARGS=" SimCalorimetery/HGCalSimAlgos/python/hgcrocEmulator_cfi.py"/>
+  <use name="FWCore/ParameterSetReader"/>
+  <use name="DataFormats/HGCalDigi"/>
+  <use name="SimCalorimetry/HGCalSimProducers"/>
+  <use name="root"/>
+</bin>
