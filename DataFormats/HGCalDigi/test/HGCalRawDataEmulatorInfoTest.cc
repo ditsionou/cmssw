@@ -6,7 +6,6 @@
 #include <random>
 
 int main(int argc, char** argv) {
-
   std::cout << "Basic test of MC truth for the HGCalRawDataEmulatorInfo classes" << std::endl;
 
   // http://www.cplusplus.com/reference/random/linear_congruential_engine/
@@ -17,21 +16,21 @@ int main(int argc, char** argv) {
   HGCalSlinkEmulatorInfo slink_info;
   unsigned long int u = 0;
   for (; u < 128; u++) {
-    uint64_t enabledCh = myrand()%37;
-    bool obit = myrand()%2;
-    bool bbit = myrand()%2;
-    bool ebit = myrand()%2;
-    bool tbit = myrand()%2;
-    bool hbit = myrand()%2;
-    bool sbit = myrand()%2;
-    HGCalECONDEmulatorInfo econd_info(obit,bbit,ebit,tbit,hbit,sbit);
+    uint64_t enabledCh = myrand() % 37;
+    bool obit = myrand() % 2;
+    bool bbit = myrand() % 2;
+    bool ebit = myrand() % 2;
+    bool tbit = myrand() % 2;
+    bool hbit = myrand() % 2;
+    bool sbit = myrand() % 2;
+    HGCalECONDEmulatorInfo econd_info(obit, bbit, ebit, tbit, hbit, sbit);
     econd_info.addChannelsEnable(enabledCh);
-    assert(econd_info.bitO()==obit);
-    assert(econd_info.bitB()==bbit);
-    assert(econd_info.bitE()==ebit);
-    assert(econd_info.bitT()==tbit);
-    assert(econd_info.bitH()==hbit);
-    assert(econd_info.bitS()==sbit);
+    assert(econd_info.bitO() == obit);
+    assert(econd_info.bitB() == bbit);
+    assert(econd_info.bitE() == ebit);
+    assert(econd_info.bitT() == tbit);
+    assert(econd_info.bitH() == hbit);
+    assert(econd_info.bitS() == sbit);
     slink_info.addECONDEmulatedInfo(econd_info);
   }
 

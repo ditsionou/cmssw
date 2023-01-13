@@ -14,7 +14,7 @@
    Capture Block ID: b'[14,17]
    ECON-D idx: b'[10,13]
    ECON-D eRx: b'[6,9]
-   1/2 ROC channel number: b'[0-5]   
+   1/2 ROC channel number: b'[0-5]
  */
 
 class HGCalElectronicsId {
