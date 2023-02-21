@@ -258,7 +258,9 @@ int main(int argc, char** argv) {
   for(size_t i=0; i<sizeof(parts)/sizeof(TString); i++) {
     for(Int_t ithr=-1; ithr<(Int_t)nToAThresholds+1; ithr++) {
       TString tag(Form("pu%d_",ithr));
-      histos[tag+parts[i]+"_en"] = new TH1F(tag+parts[i]+"_en",";Energy [GeV]; Particles",100,0,25);
+      float maxx(50);
+      if(parts[i].Contains("emf")) maxx=25;
+      histos[tag+parts[i]+"_en"] = new TH1F(tag+parts[i]+"_en",";Energy [GeV]; Particles",100,0,maxx);
     }
   }
 
