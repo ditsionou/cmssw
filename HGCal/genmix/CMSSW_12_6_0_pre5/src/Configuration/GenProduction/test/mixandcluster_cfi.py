@@ -13,7 +13,7 @@ mixandcluster = cms.PSet(
     pu = cms.vstring(file_list['pu']),
     sig = cms.vstring(file_list['sig']),
     avgpu = cms.int32(140),
-    maxevts = cms.int32(50),
+    maxevts = cms.int32(1),
     jetAlgo = cms.int32(2), #anti-kT=2
     jetR = cms.double(0.4)
 )

@@ -137,7 +137,7 @@ float timeResolutionByHGCAL(float en, float thr=12,bool isem=false){
 
   float x(en/TMath::CosH(2));  //the original sample was at eta=2
   float resolsq=pow(A,2)/x + pow(B/x,2) + pow(C,2);
-  return resolsq;
+  return sqrt(resolsq);
 }
 
 
@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
   
   TString parts[]={"chf","puchf","nhf","punhf","emf","puemf"};
   for(size_t i=0; i<sizeof(parts)/sizeof(TString); i++) {
-    for(UInt_t ithr=0; ithr<nToAThresholds+1; ithr++) {
+    for(Int_t ithr=-1; ithr<(Int_t)nToAThresholds+1; ithr++) {
       TString tag(Form("pu%d_",ithr));
       histos[tag+parts[i]+"_en"] = new TH1F(tag+parts[i]+"_en",";Energy [GeV]; Particles",100,0,25);
     }
@@ -308,24 +308,35 @@ int main(int argc, char** argv) {
     sigpuParticles.insert(sigpuParticles.end(), sigParticles.begin(), sigParticles.end());
     for(puMode=0; puMode<3; puMode++) {
       
-      for(UInt_t ithr=0; ithr<nToAThresholds+1; ithr++) {
+      for(Int_t ithr=-1; ithr<(Int_t)nToAThresholds+1; ithr++) {
 
-        toaThr=(ithr==0 ? -1 : toaThresholds[ithr-1]);
+        toaThr=(ithr==-1? -1 :
+                (ithr==0 ? toaThresholds[0] : toaThresholds[ithr-1]));
         
         std::vector<PseudoJet> sel_sigpuParticles;
         for(size_t ipart=0; ipart<sigpuParticles.size(); ipart++) {
           
-          PseudoJet ijet(sigpuParticles[ipart]);
-          int pfid=ijet.user_index();
-          float resol=timeResolutionByHGCAL(ijet.e(),toaThr,abs(pfid)==22);
-          float wgt=timeTaggedByHGCAL(ijet.e(),toaThr,abs(pfid)==22)*timeResolutionWeight(resol,90.,20.);
+          PseudoJet c(sigpuParticles[ipart]);
+          int pfid=c.user_index();
+          float resol=timeResolutionByHGCAL(c.e(),toaThr,abs(pfid)==22);
+          float resolWgt=timeResolutionWeight(resol,90.,20.);
+          float timeTagWgt=timeTaggedByHGCAL(c.e(),toaThr,abs(pfid)==22);
+          float wgt(1.0);
+          if(ithr==0) wgt=timeTagWgt;
+          else if(ithr>0) wgt=resolWgt*timeTagWgt;
 
-          if(pfid<0) wgt=1.0-wgt;
-          if(puMode==0) ijet *= wgt;
-          if(puMode==1 && (pfid==22 || pfid==130)) ijet*=wgt;
-          if(puMode==2 && pfid==130) ijet*=wgt;
+          //we assume that with some magic (e.g. leading hadron, shower time distribution)
+          //the reference signal toa is known          
+          if(ithr>=0) {
+            if(wgt<0.5) wgt=0; //minimal combined efficiency required
+            else if(pfid<0) wgt=1-wgt; //emulate subtraction of pileup
+          }
           
-          sel_sigpuParticles.push_back(ijet);
+          if(puMode==0) c *= wgt; //subtract all 
+          if(puMode==1 && (pfid==22 || pfid==130)) c*=wgt; //subtract neutrals
+          if(puMode==2 && pfid==130) c*=wgt; //subtract neutral hadrons
+          
+          sel_sigpuParticles.push_back(c);
         }
         
         //run clustering
