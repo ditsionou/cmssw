@@ -1,0 +1,17 @@
+executable = /afs/cern.ch/user/p/psilva/work/HGCal/genmix/CMSSW_12_6_0_pre5/src/Configuration/GenProduction/test/runGen.sh
+output     = job_$(ClusterId).out
+error      = job_$(ClusterId).err
+log        = job_$(ClusterId).log
+
+request_cpus    = 8
+request_memory  = 32GB
+request_disk    = 200GB
++JobFlavour = "nextweek"
+
+cfg=MinBias_TuneCP5_14TeV_pythia8
+arguments = $(ProcId) $(cfg) 1000
+queue 250
+
+cfg=VBF_H125_TuneCP5_14TeV_pythia8
+arguments = $(ProcId) $(cfg) 1000
+queue 10
