@@ -84,18 +84,15 @@ std::vector<uint32_t> hgcal::econd::addChannelData(uint8_t& msb,
 //
 std::vector<uint32_t> hgcal::econd::eRxSubPacketHeader(
     uint16_t stat, uint16_t ham, bool bitE, uint16_t cm0, uint16_t cm1, std::vector<bool> chmap) {
-
   uint64_t chmap64b(0);
-  for(size_t i=0; i<65; i++) chmap64b |= (chmap[i]<<i);
-  return hgcal::econd::eRxSubPacketHeader(stat,ham,bitE,cm0,cm1,chmap64b);
-
+  for (size_t i = 0; i < 65; i++)
+    chmap64b |= (chmap[i] << i);
+  return hgcal::econd::eRxSubPacketHeader(stat, ham, bitE, cm0, cm1, chmap64b);
 }
-
 
 //
 std::vector<uint32_t> hgcal::econd::eRxSubPacketHeader(
     uint16_t stat, uint16_t ham, bool bitE, uint16_t cm0, uint16_t cm1, uint64_t chmap) {
-
   uint32_t header((stat & hgcal::ECOND_FRAME::ERXSTAT_MASK) << hgcal::ECOND_FRAME::ERXSTAT_POS |
                   (ham & hgcal::ECOND_FRAME::ERXHAM_MASK) << hgcal::ECOND_FRAME::ERXHAM_POS |
                   (cm0 & hgcal::ECOND_FRAME::COMMONMODE0_MASK) << hgcal::ECOND_FRAME::COMMONMODE0_POS |
@@ -105,7 +102,7 @@ std::vector<uint32_t> hgcal::econd::eRxSubPacketHeader(
 
   //summarize the channel status map
   uint32_t chmapw0(chmap & hgcal::ECOND_FRAME::CHMAP0_MASK);
-  uint32_t chmapw1( (chmap >> 32) & hgcal::ECOND_FRAME::CHMAP32_MASK);
+  uint32_t chmapw1((chmap >> 32) & hgcal::ECOND_FRAME::CHMAP32_MASK);
 
   //add the channel map
   if (chmapw0 == 0 && chmapw1 == 0) {
@@ -117,10 +114,7 @@ std::vector<uint32_t> hgcal::econd::eRxSubPacketHeader(
   }
 
   return newWords;
-
-
 }
-
 
 //
 std::vector<uint32_t> hgcal::econd::eventPacketHeader(uint16_t header,

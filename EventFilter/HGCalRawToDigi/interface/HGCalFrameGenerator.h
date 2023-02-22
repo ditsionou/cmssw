@@ -27,7 +27,8 @@ namespace hgcal {
     std::vector<uint32_t> produceECONEvent(const econd::ECONDEvent&) const;
     const HGCalECONDEmulatorInfo& lastECONDEmulatedInfo() const { return last_econd_emul_info_; }
 
-    std::vector<uint64_t> produceSlinkEvent(const econd::ECONDEvent&) const;
+    /// Produce a S-link event from an input emulated event
+    std::vector<uint64_t> produceSlinkEvent(uint32_t fed_id, const econd::ECONDEvent&) const;
     const HGCalSlinkEmulatorInfo& lastSlinkEmulatedInfo() const { return last_slink_emul_info_; }
 
     struct ECONDParameters {

@@ -1,11 +1,11 @@
 #ifndef EventFilter_HGCalRawToDigi_TBTreeReader_h
 #define EventFilter_HGCalRawToDigi_TBTreeReader_h
 
-#include "EventFilter/HGCalRawToDigi/interface/SlinkTypes.h"
+#include "EventFilter/HGCalRawToDigi/interface/Emulator.h"
 #include "TChain.h"
 
 namespace hgcal::econd {
-  class TBTreeReader {
+  class TBTreeReader : public Emulator {
   public:
     /// \param[in] tree_name Name of the TB events tree
     /// \param[in] filenames List of filenames to loop on
@@ -18,13 +18,12 @@ namespace hgcal::econd {
     struct TreeEvent {
       int event, chip, half, channel, adc, adcm, toa, tot, totflag, bxcounter, eventcounter, orbitcounter;
     };
-    ECONDEvent next();
+    ECONDEvent next() override;
 
   private:
     TChain chain_;
     ECONDInputs data_;
     ECONDInputs::const_iterator it_data_;
-    unsigned int num_channels_;
   };
 }  // namespace hgcal::econd
 

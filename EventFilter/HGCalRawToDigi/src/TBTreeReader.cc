@@ -5,7 +5,7 @@ namespace hgcal::econd {
   TBTreeReader::TBTreeReader(const std::string& tree_name,
                              const std::vector<std::string>& filenames,
                              unsigned int num_channels)
-      : chain_(tree_name.c_str()), num_channels_(num_channels) {
+      : Emulator(num_channels), chain_(tree_name.c_str()) {
     for (const auto& filename : filenames)
       chain_.Add(filename.c_str());
     TreeEvent event;

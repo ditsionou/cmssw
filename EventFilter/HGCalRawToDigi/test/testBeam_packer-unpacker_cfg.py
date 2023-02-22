@@ -3,10 +3,13 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("TEST")
 
 process.load('EventFilter.HGCalRawToDigi.hgcalEmulatedSlinkRawData_cfi')
+process.load('EventFilter.HGCalRawToDigi.hgcalDigis_cfi')
 
-process.MessageLogger = cms.Service("MessageLogger",
-    cerr = cms.untracked.PSet(threshold = cms.untracked.string('DEBUG'))
-)
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.MessageLogger.cerr.threshold = "DEBUG"
+#process.MessageLogger.debugModules = ["HGCalUnpack"]
+process.MessageLogger.debugModules = ["hgcalDigis"]
+
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(20))
 process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
     hgcalEmulatedSlinkRawData = cms.PSet(initialSeed = cms.untracked.uint32(42))
@@ -21,6 +24,8 @@ process.hgcalEmulatedSlinkRawData.inputs = cms.vstring(
     #'file:/eos/cms/store/group/dpg_hgcal/tb_hgcal/2022/sps_oct2022/electron_beam_100_160fC/beam_run/run_20221009_222828/beam_run0.root',
 )
 process.hgcalEmulatedSlinkRawData.econdParams.channelSurv = 0.5
+process.hgcalDigis.src = cms.InputTag('hgcalEmulatedSlinkRawData')
+process.hgcalDigis.fedIds = cms.vuint32(0)
 
 process.dump = cms.EDAnalyzer("DumpFEDRawDataProduct",
     label = cms.untracked.InputTag('hgcalEmulatedSlinkRawData'),
@@ -29,7 +34,7 @@ process.dump = cms.EDAnalyzer("DumpFEDRawDataProduct",
 )
 
 process.p = cms.Path(
-    process.hgcalEmulatedSlinkRawData * process.dump
+    process.hgcalEmulatedSlinkRawData * process.dump * process.hgcalDigis
 )
 
 process.output = cms.OutputModule("PoolOutputModule",

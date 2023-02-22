@@ -97,13 +97,19 @@ namespace hgcal {
     enabled_channels.clear();  // reset the list of channels enabled
 
     std::vector<uint32_t> erxData;
+    uint64_t ch_en;  // list of channels enabled
     for (const auto& jt : event) {
-      uint64_t ch_en;  // list of channels enabled
       auto chmap = generateEnabledChannels(ch_en);
       enabled_channels.emplace_back(ch_en);
 
       auto erxHeader = econd::eRxSubPacketHeader(0, 0, false, jt.second.cm0, jt.second.cm1, chmap);
       erxData.insert(erxData.end(), erxHeader.begin(), erxHeader.end());
+      if (jt.second.adc.size() < econd_.num_channels) {
+        edm::LogVerbatim("HGCalFrameGenerator:generateERxData")
+            << "Data multiplicity to low (" << jt.second.adc.size() << ") to emulate " << econd_.num_channels
+            << " ECON-D channel(s).";
+        continue;
+      }
       for (size_t i = 0; i < econd_.num_channels; i++) {
         if (!chmap.at(i))
           continue;
@@ -131,9 +137,8 @@ namespace hgcal {
     LogDebug("HGCalFrameGenerator") << econd_event.size() << " word(s) of eRx payloads inserted.";
 
     last_econd_emul_info_.clear();
-    // as ECON-D event content was just created, only prepend packet header at
-    // this stage
-    auto econdH = hgcal::econd::eventPacketHeader(
+    // as ECON-D event content was just created, only prepend packet header at this stage
+    const auto econd_header = hgcal::econd::eventPacketHeader(
         econd_.header_marker,
         econd_event.size() + 1,
         pass_through_,
@@ -144,51 +149,75 @@ namespace hgcal {
         (header_bits.bitE << 2) | (header_bits.bitB << 1) | header_bits.bitO,  // Event/BX/Orbit numbers
         matching_ebo_numbers_,
         bo_truncated_,
+        0,                         // Hamming for event header
+        std::get<1>(event.first),  // BX
+        std::get<0>(event.first),  // event id (L1A)
+        std::get<2>(event.first),  // orbit
+        header_bits.bitS,          // OR of "Stat" bits for all active eRx
         0,
-        std::get<0>(event.first),
-        std::get<1>(event.first),
-        std::get<2>(event.first),
-        header_bits.bitS,  // OR of "Stat" bits for all active eRx
-        0,
-        0);
-    econd_event.insert(econd_event.begin(), econdH.begin(), econdH.end());
-    LogDebug("HGCalFrameGenerator") << econdH.size()
+        0  // CRC
+    );
+    econd_event.insert(econd_event.begin(), econd_header.begin(), econd_header.end());
+    LogDebug("HGCalFrameGenerator") << econd_header.size()
                                     << " word(s) of event packet header prepend. New size of ECON frame: "
                                     << econd_event.size();
 
-    econd_event.push_back(computeCRC(econdH));
+    //econd_event.push_back(computeCRC(econd_header));
 
     return econd_event;
   }
 
-  std::vector<uint64_t> HGCalFrameGenerator::produceSlinkEvent(const econd::ECONDEvent& econd_event) const {
+  static std::vector<uint64_t> to64bit(const std::vector<uint32_t>& in) {
+    std::vector<uint64_t> out;
+    for (size_t i = 0; i < in.size(); i += 2) {
+      uint64_t word1 = in.at(i), word2 = (i + 1 < in.size()) ? in.at(i + 1) : 0ul;
+      out.emplace_back(((word2 & 0xffffffff) << 32) | (word1 & 0xffffffff));
+    }
+    return out;
+  }
+
+  std::vector<uint64_t> HGCalFrameGenerator::produceSlinkEvent(uint32_t fed_id,
+                                                               const econd::ECONDEvent& econd_event) const {
     std::vector<uint64_t> slink_event;
 
-    const auto& event_id = econd_event.first;
-    uint64_t oc = std::get<2>(event_id), ec = std::get<0>(event_id), bc = std::get<1>(event_id);
+    const auto& eid = econd_event.first;
+    uint64_t event_id = std::get<0>(eid), bx_id = std::get<1>(eid), orbit_id = std::get<2>(eid);
 
-    uint64_t l1a_header{0ul};
-    l1a_header |= ((oc & 0xf) << 36);
-    l1a_header |= ((ec & 0x3f) << 40);
-    l1a_header |= ((bc & 0xfff) << 46);
+    // build the S-link header words
+    const uint32_t content_id = 0;
+    const uint8_t r6 = 0, r8 = 0, v = 0, boe = 0;
+
+    const auto slink_header = to64bit(backend::buildSlinkHeader(boe, v, r8, event_id, r6, content_id, fed_id));
+
+    uint64_t l1a_header{0ull};
+    l1a_header |= ((orbit_id & 0xf) << 36);
+    l1a_header |= ((event_id & 0x3f) << 40);
+    l1a_header |= ((bx_id & 0xfff) << 46);
 
     last_slink_emul_info_.clear();
     for (size_t i = 0; i < max_num_econds_; ++i) {
-      if (i < slink_.num_econds) {
-        auto econd_evt = produceECONEvent(econd_event);
+      if (i < slink_.num_econds) {  // active ECON-D
+        auto econd_evt = to64bit(produceECONEvent(econd_event));
         const auto& econd_evt_info = lastECONDEmulatedInfo();
-        for (size_t j = 0; j < econd_evt.size(); j += 2) {
-          uint64_t word1 = econd_evt.at(j), word2 = (j + 1 < econd_evt.size()) ? econd_evt.at(j + 1) : 0ul;
-          slink_event.emplace_back(((word1 & 0xffffffff) << 32) | (word2 & 0xffffffff));
-        }
+        slink_event.insert(slink_event.end(), econd_evt.begin(), econd_evt.end());
         uint8_t econd_packet_status = ECONDPacketStatus::Normal;  //FIXME
         l1a_header |= ((econd_packet_status & 0x7) << (3 * i));
         last_slink_emul_info_.addECONDEmulatedInfo(econd_evt_info);
-      } else {
+      } else {  // inactive ECON-D
         l1a_header |= (ECONDPacketStatus::InactiveECOND << (3 * i));
       }
     }
-    slink_event.insert(slink_event.begin(), l1a_header);  // prepend L1A header
+    uint64_t l1a_header_reversed = ((l1a_header & 0xffffffff) << 32) | ((l1a_header >> 32) & 0xffffffff);
+    slink_event.insert(slink_event.begin(), l1a_header_reversed);                       // prepend L1A header
+    slink_event.insert(slink_event.begin(), slink_header.begin(), slink_header.end());  // prepend S-link header
+
+    // build the S-link trailer words
+    uint8_t eoe = 0, daqcrc = 0, trailer_r = 0;
+    uint64_t event_length = slink_event.size() - slink_header.size() - 1;
+    uint32_t crc = 0, status = 0;
+    const auto slink_trailer =
+        to64bit(backend::buildSlinkTrailer(eoe, daqcrc, trailer_r, event_length, bx_id, orbit_id, crc, status));
+    slink_event.insert(slink_event.end(), slink_trailer.begin(), slink_trailer.end());
 
     return slink_event;
   }
