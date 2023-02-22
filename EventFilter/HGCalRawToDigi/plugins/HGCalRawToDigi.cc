@@ -56,15 +56,12 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
     if (fed_data.size() == 0)
       continue;  //FIXME reporting?
 
-    //FIXME better recasting to from char's to uint32_t's?
+    //FIXME better way to recast char's to uint32_t's?
     std::vector<uint32_t> uint_data;
     auto* ptr = fed_data.data();
-    for (size_t i = 0; i < fed_data.size(); i += 4) {
-      //uint_data.emplace_back(((*(ptr + i + 4) & 0xff) << 0) + ((*(ptr + i + 5) & 0xff) << 8) +
-      //                       ((*(ptr + i + 6) & 0xff) << 16) + ((*(ptr + i + 7) & 0xff) << 24));
+    for (size_t i = 0; i < fed_data.size(); i += 4)
       uint_data.emplace_back(((*(ptr + i) & 0xff) << 0) + ((*(ptr + i + 1) & 0xff) << 8) +
                              ((*(ptr + i + 2) & 0xff) << 16) + ((*(ptr + i + 3) & 0xff) << 24));
-    }
     //FIXME test if we are at the end of the buffer
     for (const auto& uint : uint_data)
       std::cout << std::hex << std::setw(16) << uint << std::endl;
@@ -107,7 +104,7 @@ void HGCalRawToDigi::fillDescriptions(edm::ConfigurationDescriptions& descriptio
   desc.add<unsigned int>("econdHeaderMarker", 0x154)->setComment("ECON-D header Marker patter");
   desc.add<unsigned int>("slinkBOE", 0x0)->setComment("SLink BOE pattern");
   desc.add<unsigned int>("captureBlockECONDMax", 12)->setComment("maximum number of ECON-D's in one capture block");
-  desc.add<unsigned int>("econdERXMax", 12)->setComment("maximum number of erx's in one ECON-D");
+  desc.add<unsigned int>("econdERXMax", 12)->setComment("maximum number of eRx's in one ECON-D");
   desc.add<unsigned int>("erxChannelMax", 37)->setComment("maximum number of channels in one eRx");
   desc.add<unsigned int>("payloadLengthMax", 469)->setComment("maximum length of payload length");
   desc.add<unsigned int>("channelMax", 7000000)->setComment("maximum number of channels unpacked");

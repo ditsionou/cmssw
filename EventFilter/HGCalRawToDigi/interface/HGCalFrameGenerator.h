@@ -43,6 +43,7 @@ namespace hgcal {
 
     struct SlinkParameters {
       unsigned int num_econds{0};
+      unsigned int boe{0}, eoe{0}, format_version{0};
     };
     const SlinkParameters& slinkParams() const { return slink_; }
 

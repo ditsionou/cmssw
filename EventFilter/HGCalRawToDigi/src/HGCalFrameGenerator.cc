@@ -7,8 +7,25 @@
 #include "EventFilter/HGCalRawToDigi/interface/HGCalRawDataPackingTools.h"
 
 #include "CLHEP/Random/RandFlat.h"
+#include <iomanip>  //FIXME
 
 namespace hgcal {
+  // utilities
+  static void printWords(const std::string& name, const std::vector<uint32_t> vec) {
+    std::cout << ":::: " << name << " ::::" << std::endl;
+    for (size_t i = 0; i < vec.size(); ++i)
+      std::cout << i << " >>> " << std::hex << std::setfill('0') << std::setw(8) << vec.at(i) << std::endl;
+  }
+
+  static std::vector<uint64_t> to64bit(const std::vector<uint32_t>& in) {
+    std::vector<uint64_t> out;
+    for (size_t i = 0; i < in.size(); i += 2) {
+      uint64_t word1 = in.at(i), word2 = (i + 1 < in.size()) ? in.at(i + 1) : 0ul;
+      out.emplace_back(((word2 & 0xffffffff) << 32) | (word1 & 0xffffffff));
+    }
+    return out;
+  }
+
   HGCalFrameGenerator::HGCalFrameGenerator(const edm::ParameterSet& iConfig)
       : pass_through_(iConfig.getParameter<bool>("passThroughMode")),
         expected_mode_(iConfig.getParameter<bool>("expectedMode")),
@@ -28,6 +45,9 @@ namespace hgcal {
 
     const auto slink_params = iConfig.getParameter<edm::ParameterSet>("slinkParams");
     slink_.num_econds = slink_params.getParameter<unsigned int>("numECONDs");
+    slink_.boe = slink_params.getParameter<unsigned int>("boe");
+    slink_.eoe = slink_params.getParameter<unsigned int>("eoe");
+    slink_.format_version = slink_params.getParameter<unsigned int>("formatVersion");
   }
 
   edm::ParameterSetDescription HGCalFrameGenerator::description() {
@@ -58,6 +78,9 @@ namespace hgcal {
 
     edm::ParameterSetDescription slink_desc;
     slink_desc.add<unsigned int>("numECONDs", 7);
+    slink_desc.add<unsigned int>("boe", 0x55);
+    slink_desc.add<unsigned int>("eoe", 0xaa);
+    slink_desc.add<unsigned int>("formatVersion", 3);
     desc.add<edm::ParameterSetDescription>("slinkParams", slink_desc);
 
     return desc;
@@ -80,11 +103,12 @@ namespace hgcal {
   std::vector<bool> HGCalFrameGenerator::generateEnabledChannels(uint64_t& ch_en) const {
     std::vector<bool> chmap(econd_.num_channels, false);
     ch_en = 0ull;  // reset the list of channels enabled
+    if (econd_.enabled_channels.empty())
+      return chmap;
     for (size_t i = 0; i < chmap.size(); i++) {
       // randomly choosing the channels to be shot at
-      chmap[i] = (econd_.enabled_channels.empty() ||
-                  (std::find(econd_.enabled_channels.begin(), econd_.enabled_channels.end(), i) !=
-                   econd_.enabled_channels.end())) &&
+      chmap[i] = (std::find(econd_.enabled_channels.begin(), econd_.enabled_channels.end(), i) !=
+                  econd_.enabled_channels.end()) &&
                  CLHEP::RandFlat::shoot(rng_) <= econd_.chan_surv_prob;
       ch_en += (chmap[i] << i);
     }
@@ -138,7 +162,7 @@ namespace hgcal {
 
     last_econd_emul_info_.clear();
     // as ECON-D event content was just created, only prepend packet header at this stage
-    const auto econd_header = hgcal::econd::eventPacketHeader(
+    const auto econd_header = econd::eventPacketHeader(
         econd_.header_marker,
         econd_event.size() + 1,
         pass_through_,
@@ -162,18 +186,9 @@ namespace hgcal {
                                     << " word(s) of event packet header prepend. New size of ECON frame: "
                                     << econd_event.size();
 
-    //econd_event.push_back(computeCRC(econd_header));
+    econd_event.push_back(computeCRC(econd_header));
 
     return econd_event;
-  }
-
-  static std::vector<uint64_t> to64bit(const std::vector<uint32_t>& in) {
-    std::vector<uint64_t> out;
-    for (size_t i = 0; i < in.size(); i += 2) {
-      uint64_t word1 = in.at(i), word2 = (i + 1 < in.size()) ? in.at(i + 1) : 0ul;
-      out.emplace_back(((word2 & 0xffffffff) << 32) | (word1 & 0xffffffff));
-    }
-    return out;
   }
 
   std::vector<uint64_t> HGCalFrameGenerator::produceSlinkEvent(uint32_t fed_id,
@@ -181,13 +196,12 @@ namespace hgcal {
     std::vector<uint64_t> slink_event;
 
     const auto& eid = econd_event.first;
-    uint64_t event_id = std::get<0>(eid), bx_id = std::get<1>(eid), orbit_id = std::get<2>(eid);
+    const uint64_t event_id = std::get<0>(eid), bx_id = std::get<1>(eid), orbit_id = std::get<2>(eid);
 
     // build the S-link header words
-    const uint32_t content_id = 0;
-    const uint8_t r6 = 0, r8 = 0, v = 0, boe = 0;
-
-    const auto slink_header = to64bit(backend::buildSlinkHeader(boe, v, r8, event_id, r6, content_id, fed_id));
+    const uint32_t content_id = backend::buildSlinkContentId(backend::SlinkEmulationFlag::Subsystem, 0, 0);
+    const auto slink_header =
+        to64bit(backend::buildSlinkHeader(slink_.boe, slink_.format_version, event_id, content_id, fed_id));
 
     uint64_t l1a_header{0ull};
     l1a_header |= ((orbit_id & 0xf) << 36);
@@ -212,11 +226,11 @@ namespace hgcal {
     slink_event.insert(slink_event.begin(), slink_header.begin(), slink_header.end());  // prepend S-link header
 
     // build the S-link trailer words
-    uint8_t eoe = 0, daqcrc = 0, trailer_r = 0;
-    uint64_t event_length = slink_event.size() - slink_header.size() - 1;
-    uint32_t crc = 0, status = 0;
+    const uint16_t daq_crc = 0, crc = 0;
+    const uint32_t event_length = slink_event.size() - slink_header.size() - 1;
+    const uint16_t status = backend::buildSlinkRocketStatus(false, false, false, false, false);
     const auto slink_trailer =
-        to64bit(backend::buildSlinkTrailer(eoe, daqcrc, trailer_r, event_length, bx_id, orbit_id, crc, status));
+        to64bit(backend::buildSlinkTrailer(slink_.eoe, daq_crc, event_length, bx_id, orbit_id, crc, status));
     slink_event.insert(slink_event.end(), slink_trailer.begin(), slink_trailer.end());
 
     return slink_event;

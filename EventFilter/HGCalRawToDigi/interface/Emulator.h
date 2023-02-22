@@ -22,13 +22,8 @@ namespace hgcal::econd {
     ECONDEvent next() override {
       EventId evt_id{event_id_++, bx_id_++, orbit_id_++};
       ERxData dummy_data{.adc = {}, .adcm = {}, .toa = {}, .tot = {}, .tctp = {}, .cm0 = 0, .cm1 = 0};
-      ERxEvent evt = {// map<ERx_t, ERxData>
-                      {ERx_t{
-                           0,  // chip
-                           0   // half
-                       },
-                       dummy_data}};
-      return std::make_pair(evt_id, evt);
+      ERxEvent empty_evt = {{ERx_t{0 /*chip*/, 0 /*half*/}, dummy_data}};  // map<ERx_t, ERxData>
+      return ECONDEvent{evt_id, empty_evt};
     }
 
   private:

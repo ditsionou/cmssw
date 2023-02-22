@@ -175,16 +175,14 @@ std::vector<uint32_t> hgcal::backend::buildCaptureBlockHeader(uint32_t bc,
 
 //
 std::vector<uint32_t> hgcal::backend::buildSlinkHeader(
-    uint8_t boe, uint8_t v, uint8_t r8, uint64_t global_event_id, uint8_t r6, uint32_t content_id, uint32_t fed_id) {
+    uint8_t boe, uint8_t v, uint64_t global_event_id, uint32_t content_id, uint32_t fed_id) {
   std::vector<uint32_t> header(4, 0);
   header[0] = (boe & hgcal::BACKEND_FRAME::SLINK_BOE_MASK) << hgcal::BACKEND_FRAME::SLINK_BOE_POS |
               (v & hgcal::BACKEND_FRAME::SLINK_V_MASK) << hgcal::BACKEND_FRAME::SLINK_V_POS |
-              (r8 & hgcal::BACKEND_FRAME::SLINK_R8_MASK) << hgcal::BACKEND_FRAME::SLINK_R8_POS |
               ((global_event_id >> 41) & SLINK_GLOBAL_EVENTID_MSB_MASK)
                   << hgcal::BACKEND_FRAME::SLINK_GLOBAL_EVENTID_MSB_POS;
   header[1] = (global_event_id & SLINK_GLOBAL_EVENTID_LSB_MASK);
-  header[2] = (r6 & hgcal::BACKEND_FRAME::SLINK_R6_MASK) << hgcal::BACKEND_FRAME::SLINK_R6_POS |
-              (content_id & hgcal::BACKEND_FRAME::SLINK_CONTENTID_MASK) << hgcal::BACKEND_FRAME::SLINK_CONTENTID_POS;
+  header[2] = (content_id & hgcal::BACKEND_FRAME::SLINK_CONTENTID_MASK) << hgcal::BACKEND_FRAME::SLINK_CONTENTID_POS;
   header[3] = (fed_id & hgcal::BACKEND_FRAME::SLINK_SOURCEID_MASK) << hgcal::BACKEND_FRAME::SLINK_SOURCEID_POS;
 
   return header;
@@ -192,18 +190,16 @@ std::vector<uint32_t> hgcal::backend::buildSlinkHeader(
 
 //
 std::vector<uint32_t> hgcal::backend::buildSlinkTrailer(uint8_t eoe,
-                                                        uint8_t daqcrc,
-                                                        uint8_t trailer_r,
-                                                        uint64_t event_length,
-                                                        uint8_t bxid,
+                                                        uint16_t daqcrc,
+                                                        uint32_t event_length,
+                                                        uint16_t bxid,
                                                         uint32_t orbit_id,
-                                                        uint32_t crc,
-                                                        uint32_t status) {
+                                                        uint16_t crc,
+                                                        uint16_t status) {
   std::vector<uint32_t> trailer(4, 0);
 
   trailer[0] = (eoe & hgcal::BACKEND_FRAME::SLINK_EOE_MASK) << hgcal::BACKEND_FRAME::SLINK_EOE_POS |
-               (daqcrc & hgcal::BACKEND_FRAME::SLINK_DAQCRC_MASK) << hgcal::BACKEND_FRAME::SLINK_DAQCRC_POS |
-               (trailer_r & hgcal::BACKEND_FRAME::SLINK_TRAILERR_MASK) << hgcal::BACKEND_FRAME::SLINK_TRAILERR_POS;
+               (daqcrc & hgcal::BACKEND_FRAME::SLINK_DAQCRC_MASK) << hgcal::BACKEND_FRAME::SLINK_DAQCRC_POS;
   trailer[1] = (event_length & hgcal::BACKEND_FRAME::SLINK_EVLENGTH_MASK) << hgcal::BACKEND_FRAME::SLINK_EVLENGTH_POS |
                (bxid & hgcal::BACKEND_FRAME::SLINK_BXID_MASK) << hgcal::BACKEND_FRAME::SLINK_BXID_POS;
   trailer[2] = (orbit_id & hgcal::BACKEND_FRAME::SLINK_ORBID_MASK) << hgcal::BACKEND_FRAME::SLINK_ORBID_POS;
@@ -211,4 +207,15 @@ std::vector<uint32_t> hgcal::backend::buildSlinkTrailer(uint8_t eoe,
                (status & hgcal::BACKEND_FRAME::SLINK_STATUS_MASK) << hgcal::BACKEND_FRAME::SLINK_STATUS_POS;
 
   return trailer;
+}
+
+//
+uint32_t hgcal::backend::buildSlinkContentId(SlinkEmulationFlag e, uint8_t l1a_subtype, uint16_t l1a_fragment_cnt) {
+  return 0x0 | (l1a_fragment_cnt & 0xffff) | (l1a_subtype & 0xff) << 16 | (e & 0x3) << 24;
+}
+
+uint16_t hgcal::backend::buildSlinkRocketStatus(
+    bool fed_crc_err, bool slinkrocket_crc_err, bool source_id_err, bool sync_lost, bool fragment_trunc) {
+  return 0x0 | (fed_crc_err & 0x1) << 0 | (slinkrocket_crc_err & 0x1) << 1 | (source_id_err & 0x1) << 2 |
+         (sync_lost & 0x1) << 3 | (fragment_trunc & 0x1) << 4;
 }

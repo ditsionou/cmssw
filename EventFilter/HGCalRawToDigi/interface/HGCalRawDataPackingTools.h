@@ -78,20 +78,33 @@ namespace hgcal {
      * \return a vector with 4 32b words
      */
     std::vector<uint32_t> buildSlinkHeader(
-        uint8_t boe, uint8_t v, uint8_t r8, uint64_t global_event_id, uint8_t r6, uint32_t content_id, uint32_t fed_id);
+        uint8_t boe, uint8_t v, uint64_t global_event_id, uint32_t content_id, uint32_t fed_id);
 
     /**
      * \short builds the slink frame trailer (128 bits trailer = 4 words)
      * \return a vector with 4 32b words
      */
     std::vector<uint32_t> buildSlinkTrailer(uint8_t eoe,
-                                            uint8_t daqcrc,
-                                            uint8_t trailer_r,
-                                            uint64_t event_length,
-                                            uint8_t bxid,
+                                            uint16_t daqcrc,
+                                            uint32_t event_length,
+                                            uint16_t bxid,
                                             uint32_t orbit_id,
-                                            uint32_t crc,
-                                            uint32_t status);
+                                            uint16_t crc,
+                                            uint16_t status);
+
+    typedef enum { Subsystem = 0, SlinkRocketSenderCore = 1, DTH = 2 } SlinkEmulationFlag;
+    /**
+     * \short builds the slink rocket event data content ID
+     * \return a 32b word
+     */
+    uint32_t buildSlinkContentId(SlinkEmulationFlag, uint8_t l1a_subtype, uint16_t l1a_fragment_cnt);
+
+    /**
+     * \builds the SlinkRocket sender core status field
+     * \return a 16b word
+     */
+    uint16_t buildSlinkRocketStatus(
+        bool fed_crc_err, bool slinkrocket_crc_err, bool source_id_err, bool sync_lost, bool fragment_trunc);
   }  // namespace backend
 }  // namespace hgcal
 
