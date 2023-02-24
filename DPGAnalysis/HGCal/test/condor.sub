@@ -1,0 +1,20 @@
+executable = runLocalGeneration.sh
+outdir = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+
+output     = $(basedir)/$(ClusterId).out
+error      = $(basedir)/$(ClusterId).err
+log        = $(basedir)/$(ClusterId).log
++JobFlavour = "nextweek"
+
+arguments = 500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi $(outdir)/SingleK0LGun_eta2p0_13_0_0_pre4_D99/Events_$(ProcId).root
+queue 20
+
+arguments = 500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi $(outdir)/SinglePhotonGun_eta2p0_13_0_0_pre4_D99/Events_$(ProcId).root
+queue 20
+
+arguments = 500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi $(outdir)/SingleK0LGun_eta2p0_13_0_0_pre4_D99_aged/Events_$(ProcId).root aged
+queue 20
+
+arguments = 500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi $(outdir)/SinglePhotonGun_eta2p0_13_0_0_pre4_D99_aged/Events_$(ProcId).root aged
+queue 20
+
