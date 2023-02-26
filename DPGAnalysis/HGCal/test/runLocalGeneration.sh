@@ -1,27 +1,25 @@
-#/bin/bash
+#!/bin/bash
 
 work_dir=`pwd`
 echo "Working directory is: $work_dir"
 
 #source environment
-local_release=`dirname "$0"`
-echo $local_release
-cd $local_release
+cmssw_release=$1
+cd ${cmssw_release}/src
 source /cvmfs/cms.cern.ch/cmsset_default.sh
-eval `scram r -sh`
-cd ${work_dir}
+cmsenv
 echo "CMSSW_BASE=$CMSSW_BASE"
+cd ${work_dir}
 
 #configure script
-n=$1
-cfg=$2
-outf=$3
+n=$2
+cfg=$3
+outf=$4
+scenario=$5
 digi_custom=""
-if [ -z "$4" ]; then
-    echo "Vanilla digitization"
-elif
+if [ $scenario == "aged_3iab" ]; then
     digi_custom="--customise SLHCUpgradeSimulations/Configuration/aging.customise_aging_3000"
-    echo "Will apply aging"
+    echo "Will apply aging for 3/ab"
 fi
 
 outdir=`dirname ${outf}`

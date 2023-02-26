@@ -14,5 +14,5 @@ generator = cms.EDProducer("FlatRandomPtGunProducer",
                            ),
                            Verbosity = cms.untracked.int32(0),
                            firstRun = cms.untracked.uint32(1),
-                           psethack = cms.string('multiple particles predefined pT/E eta 1p479 to 3')
+                           psethack = cms.string('multiple K-longs flat pT at eta=2.0')
 )

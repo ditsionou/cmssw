@@ -1,20 +1,22 @@
+my_cmssw   = /afs/cern.ch/user/p/psilva/work/HGCal/TimingStudies/CMSSW_13_0_0_pre4/
 executable = runLocalGeneration.sh
-outdir = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+my_eosdir  = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+arguments  = $(my_cmssw) $(n_perjob) $(my_cfi) $(my_eosdir)/$(sample_name)/Events_$(ProcId).root $(scenario)
+output     = $(ClusterId).out
+error      = $(ClusterId).err
+log        = $(ClusterId).log
++JobFlavour = "tomorrow"
+#requirements = (OpSysAndVer =?= "CentOS8")
+MY.WantOS = "el8"
 
-output     = $(basedir)/$(ClusterId).out
-error      = $(basedir)/$(ClusterId).err
-log        = $(basedir)/$(ClusterId).log
-+JobFlavour = "nextweek"
-
-arguments = 500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi $(outdir)/SingleK0LGun_eta2p0_13_0_0_pre4_D99/Events_$(ProcId).root
-queue 20
-
-arguments = 500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi $(outdir)/SinglePhotonGun_eta2p0_13_0_0_pre4_D99/Events_$(ProcId).root
-queue 20
-
-arguments = 500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi $(outdir)/SingleK0LGun_eta2p0_13_0_0_pre4_D99_aged/Events_$(ProcId).root aged
-queue 20
-
-arguments = 500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi $(outdir)/SinglePhotonGun_eta2p0_13_0_0_pre4_D99_aged/Events_$(ProcId).root aged
-queue 20
+queue 20 n_perjob,my_cfi,sample_name,scenario from (
+      2500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi SingleK0LGun_eta2p0_13_0_0_pre4_D99 vanilla
+      2500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi SingleK0LGun_eta2p5_13_0_0_pre4_D99 vanilla
+      2500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi SinglePhotonGun_eta2p0_13_0_0_pre4_D99 vanilla
+      2500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi SinglePhotonGun_eta2p5_13_0_0_pre4_D99 vanilla
+      2500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi SingleK0LGun_eta2p0_13_0_0_pre4_D99_3iab aged_3iab
+      2500 DPGAnalysis/HGCal/SingleK0LGun_eta2p0_cfi SingleK0LGun_eta2p5_13_0_0_pre4_D99_3iab aged_3iab
+      2500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi SinglePhotonGun_eta2p0_13_0_0_pre4_D99_3iab aged_3iab
+      2500 DPGAnalysis/HGCal/SinglePhotonGun_eta2p0_cfi SinglePhotonGun_eta2p5_13_0_0_pre4_D99_3iab aged_3iab      
+) 
 
