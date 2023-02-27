@@ -63,8 +63,6 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       uint_data.emplace_back(((*(ptr + i) & 0xff) << 0) + ((*(ptr + i + 1) & 0xff) << 8) +
                              ((*(ptr + i + 2) & 0xff) << 16) + ((*(ptr + i + 3) & 0xff) << 24));
     //FIXME test if we are at the end of the buffer
-    for (const auto& uint : uint_data)
-      std::cout << std::hex << std::setw(16) << uint << std::endl;
 
     unpacker_->parseSLink(
         uint_data.data(),
@@ -93,6 +91,7 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
 
   // prepare the output
   HGCalDigiCollection digis;
+  //FIXME still to be filled with the unpacker output...
   iEvent.emplace(digisToken_, std::move(digis));
 }
 

@@ -14,7 +14,7 @@ namespace hgcal {
      * \return a vector of new words (up to 2 in case one needs to use the next 32b
      *   the msb is updated as the reference is passed
      */
-    std::vector<uint32_t> addChannelData(uint8_t &msb,
+    std::vector<uint32_t> addChannelData(uint8_t& msb,
                                          uint16_t tctp,
                                          uint16_t adc,
                                          uint16_t tot,
@@ -64,6 +64,16 @@ namespace hgcal {
   }  // namespace econd
 
   namespace backend {
+    enum ECONDPacketStatus {
+      Normal = 0x0,
+      PayloadCRCError = 0x1,
+      EventIDMismatch = 0x2,
+      EBTimeout = 0x4,
+      BCIDOrbitIDMismatch = 0x5,
+      MainBufferOverflow = 0x6,
+      InactiveECOND = 0x7
+    };
+
     /**
      * \short builds the capture block header (see page 16 of "HGCAL BE DAQ firmware description")
      * \return a vector of size 2 with the 2 32b words of the capture block header
@@ -71,7 +81,7 @@ namespace hgcal {
     std::vector<uint32_t> buildCaptureBlockHeader(uint32_t bc,
                                                   uint32_t ec,
                                                   uint32_t oc,
-                                                  std::vector<uint8_t> &econdStatus);
+                                                  const std::vector<ECONDPacketStatus>& econd_statuses);
 
     /**
      * \short builds the slink frame header (128 bits header = 4 words)
@@ -92,7 +102,7 @@ namespace hgcal {
                                             uint16_t crc,
                                             uint16_t status);
 
-    typedef enum { Subsystem = 0, SlinkRocketSenderCore = 1, DTH = 2 } SlinkEmulationFlag;
+    enum SlinkEmulationFlag { Subsystem = 0, SlinkRocketSenderCore = 1, DTH = 2 };
     /**
      * \short builds the slink rocket event data content ID
      * \return a 32b word

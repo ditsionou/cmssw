@@ -42,14 +42,14 @@ namespace hgcal {
     const ECONDParameters& econdParams() const { return econd_; }
 
     struct SlinkParameters {
-      unsigned int num_econds{0};
-      unsigned int boe{0}, eoe{0}, format_version{0};
+      unsigned int num_econds{0};  //FIXME possibly replaced by a list of ECON-D's
+      unsigned int boe_marker{0}, eoe_marker{0}, format_version{0};
     };
     const SlinkParameters& slinkParams() const { return slink_; }
 
   private:
-    std::vector<bool> generateEnabledChannels(uint64_t&) const;
-    std::vector<uint32_t> generateERxData(const econd::ERxEvent&, std::vector<uint64_t>&) const;
+    std::vector<bool> generateEnabledChannels() const;
+    std::vector<uint32_t> generateERxData(const econd::ERxEvent&) const;
 
     static constexpr size_t max_num_econds_ = 12;
     const bool pass_through_;
@@ -63,16 +63,6 @@ namespace hgcal {
     HeaderBits generateStatusBits() const;
     /// 8bit CRC for event header
     uint8_t computeCRC(const std::vector<uint32_t>&) const;
-
-    enum ECONDPacketStatus {
-      Normal = 0,
-      PayloadCRCError = 1,
-      EventIDMismatch = 2,
-      EBTimeout = 4,
-      BCIDOrbitIDMismatch = 5,
-      MainBufferOverflow = 6,
-      InactiveECOND = 7
-    };
 
     ECONDParameters econd_;
     SlinkParameters slink_;

@@ -156,20 +156,17 @@ uint32_t hgcal::econd::buildIdleWord(uint8_t bufStat, uint8_t err, uint8_t rr, u
 }
 
 //
-std::vector<uint32_t> hgcal::backend::buildCaptureBlockHeader(uint32_t bc,
-                                                              uint32_t ec,
-                                                              uint32_t oc,
-                                                              std::vector<uint8_t>& econdStatus) {
+std::vector<uint32_t> hgcal::backend::buildCaptureBlockHeader(
+    uint32_t bc, uint32_t ec, uint32_t oc, const std::vector<hgcal::backend::ECONDPacketStatus>& econd_statuses) {
+  if (econd_statuses.size() > 12)
+    throw std::runtime_error("Invalid size for ECON-D statuses: " + std::to_string(econd_statuses.size()));
   std::vector<uint32_t> header(2, 0);
   header[0] = (bc & hgcal::BACKEND_FRAME::CAPTUREBLOCK_BC_MASK) << hgcal::BACKEND_FRAME::CAPTUREBLOCK_BC_POS |
               (ec & hgcal::BACKEND_FRAME::CAPTUREBLOCK_EC_MASK) << hgcal::BACKEND_FRAME::CAPTUREBLOCK_EC_POS |
               (oc & hgcal::BACKEND_FRAME::CAPTUREBLOCK_OC_MASK) << hgcal::BACKEND_FRAME::CAPTUREBLOCK_OC_POS |
-              (econdStatus[11] & 0x7) << 1 | ((econdStatus[10] >> 2) & 0x1);
-
-  for (size_t i = 0; i < 11; i++) {
-    header[1] |= (econdStatus[i] & 0x7) << i * 3;
-  }
-
+              (econd_statuses[11] & 0x7) << 1 | ((econd_statuses[10] >> 2) & 0x1);
+  for (size_t i = 0; i < 11; i++)
+    header[1] |= (econd_statuses[i] & 0x7) << i * 3;
   return header;
 }
 
