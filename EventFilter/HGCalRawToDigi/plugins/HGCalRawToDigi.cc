@@ -98,10 +98,10 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
 void HGCalRawToDigi::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag("rawDataCollector"));
-  desc.add<unsigned int>("maxCaptureBlock", 2)->setComment("maximum number of capture blocks in one S-Link");
-  desc.add<unsigned int>("captureBlockReserved", 0x3f)->setComment("capture block reserved pattern");
+  desc.add<unsigned int>("maxCaptureBlock", 1)->setComment("maximum number of capture blocks in one S-Link");
+  desc.add<unsigned int>("captureBlockReserved", 0)->setComment("capture block reserved pattern");
   desc.add<unsigned int>("econdHeaderMarker", 0x154)->setComment("ECON-D header Marker patter");
-  desc.add<unsigned int>("slinkBOE", 0x0)->setComment("SLink BOE pattern");
+  desc.add<unsigned int>("slinkBOE", 0x2a)->setComment("SLink BOE pattern");
   desc.add<unsigned int>("captureBlockECONDMax", 12)->setComment("maximum number of ECON-D's in one capture block");
   desc.add<unsigned int>("econdERXMax", 12)->setComment("maximum number of eRx's in one ECON-D");
   desc.add<unsigned int>("erxChannelMax", 37)->setComment("maximum number of channels in one eRx");

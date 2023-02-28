@@ -23,7 +23,7 @@ namespace hgcal {
     std::vector<uint64_t> out;
     for (size_t i = 0; i < in.size(); i += 2) {
       uint64_t word1 = in.at(i), word2 = (i + 1 < in.size()) ? in.at(i + 1) : 0ul;
-      out.emplace_back(((word1 & 0xffffffff) << 32) | (word2 & 0xffffffff));
+      out.emplace_back(((word2 & 0xffffffff) << 32) | (word1 & 0xffffffff));
     }
     return out;
   }
