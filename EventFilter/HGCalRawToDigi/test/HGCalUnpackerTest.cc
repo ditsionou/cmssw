@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
     std::ifstream file(argv[1], std::ios::in | std::ios::binary);
     std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     for (size_t i = 0; i < data.size(); i += 4)
-      testInput.emplace_back((data.at(i)) & 0xff << 24 | (data.at(i + 1) & 0xff) << 16 | (data.at(i + 2) & 0xff) << 8 |
-                             (data.at(i + 3) & 0xff) << 0);  //FIXME check endianness
+      testInput.emplace_back(((data.at(i)) & 0xff << 24) | ((data.at(i + 1) & 0xff) << 16) |
+                             ((data.at(i + 2) & 0xff) << 8) | (data.at(i + 3) & 0xff));  //FIXME check endianness
   }
   std::cout << ":::: test input ::::" << std::endl;
   for (const auto& word : testInput)

@@ -1,20 +1,25 @@
 #ifndef EventFilter_HGCalRawToDigi_Emulator_h
 #define EventFilter_HGCalRawToDigi_Emulator_h
 
+#include <cstddef>
+
 #include "EventFilter/HGCalRawToDigi/interface/SlinkTypes.h"
 
 namespace hgcal::econd {
+  /// Pure virtual base class for a ECON-D event emulator implementation
   class Emulator {
   public:
     explicit Emulator(size_t num_channels) : num_channels_(num_channels) {}
     virtual ~Emulator() = default;
 
+    /// Fetch the next ECON-D event
     virtual ECONDEvent next() = 0;
 
   protected:
     const size_t num_channels_;
   };
 
+  /// A "trivial" ECON-D emulator emulating empty ECON-D events
   class TrivialEmulator : public Emulator {
   public:
     using Emulator::Emulator;
