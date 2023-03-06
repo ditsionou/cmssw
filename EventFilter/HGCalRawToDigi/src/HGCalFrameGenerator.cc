@@ -12,11 +12,11 @@
 namespace hgcal {
   // utilities
   template <typename T>
-  void printWords(const std::string& name, const std::vector<T> vec) {
-    std::cout << ":::: " << name << " ::::" << std::endl;
+  void printWords(std::ostream& os, const std::string& name, const std::vector<T> vec) {
+    os << "Dump of the '" << name << "' words:" << std::endl;
     for (size_t i = 0; i < vec.size(); ++i)
-      std::cout << std::dec << std::setfill(' ') << std::setw(4) << i << " ---> 0x" << std::hex << std::setfill('0')
-                << std::setw(sizeof(T) * 2) << vec.at(i) << std::endl;
+      os << std::dec << std::setfill(' ') << std::setw(4) << i << ": 0x" << std::hex << std::setfill('0')
+         << std::setw(sizeof(T) * 2) << vec.at(i) << std::endl;
   }
 
   static std::vector<uint64_t> to64bit(const std::vector<uint32_t>& in) {
@@ -145,7 +145,7 @@ namespace hgcal {
         erxData.insert(erxData.end(), chData.begin(), chData.end());
       }
     }
-    printWords("erx", erxData);
+    LogDebug("HGCalFrameGenerator").log([&erxData](auto& log) { printWords(log, "erx", erxData); });
     return erxData;
   }
 
@@ -176,7 +176,7 @@ namespace hgcal {
                                  0,
                                  0  // CRC
         );
-    printWords("econ-d header", econd_header);
+    LogDebug("HGCalFrameGenerator").log([&econd_header](auto& log) { printWords(log, "econ-d header", econd_header); });
     econd_event.insert(econd_event.begin(), econd_header.begin(), econd_header.end());
     LogDebug("HGCalFrameGenerator") << econd_header.size()
                                     << " word(s) of event packet header prepend. New size of ECON frame: "
@@ -198,7 +198,7 @@ namespace hgcal {
     const uint32_t content_id = backend::buildSlinkContentId(backend::SlinkEmulationFlag::Subsystem, 0, 0);
     const auto slink_header =
         to64bit(backend::buildSlinkHeader(slink_.boe_marker, slink_.format_version, event_id, content_id, fed_id));
-    printWords("slink header", slink_header);
+    LogDebug("HGCalFrameGenerator").log([&slink_header](auto& log) { printWords(log, "slink header", slink_header); });
 
     last_slink_emul_info_.clear();
 
@@ -211,7 +211,7 @@ namespace hgcal {
         last_slink_emul_info_.addECONDEmulatedInfo(lastECONDEmulatedInfo());
       }
     const auto l1a_header = to64bit(backend::buildCaptureBlockHeader(bx_id, event_id, orbit_id, econd_statuses));
-    printWords("l1a", l1a_header);
+    LogDebug("HGCalFrameGenerator").log([&l1a_header](auto& log) { printWords(log, "l1a", l1a_header); });
     slink_event.insert(slink_event.begin(), l1a_header.begin(), l1a_header.end());      // prepend capture block header
     slink_event.insert(slink_event.begin(), slink_header.begin(), slink_header.end());  // prepend S-link header
 
