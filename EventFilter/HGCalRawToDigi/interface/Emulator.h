@@ -19,8 +19,8 @@ namespace hgcal::econd {
     const size_t num_channels_;
   };
 
-  /// A "trivial" ECON-D emulator emulating empty ECON-D events
-  class TrivialEmulator : public Emulator {
+  /// An empty ECON-D payloads emulator
+  class EmptyEmulator : public Emulator {
   public:
     using Emulator::Emulator;
 
@@ -32,6 +32,18 @@ namespace hgcal::econd {
     }
 
   private:
+    uint32_t event_id_{1}, bx_id_{2}, orbit_id_{3};
+  };
+
+  /// A "trivial" ECON-D emulator emulating non-empty ECON-D events
+  class TrivialEmulator : public Emulator {
+  public:
+    explicit TrivialEmulator(size_t num_channels, const std::vector<unsigned int>&);
+
+    ECONDEvent next() override;
+
+  private:
+    const std::vector<unsigned int> erx_ids_;
     uint32_t event_id_{1}, bx_id_{2}, orbit_id_{3};
   };
 }  // namespace hgcal::econd
