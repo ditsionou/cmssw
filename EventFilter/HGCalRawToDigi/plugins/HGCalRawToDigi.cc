@@ -13,8 +13,6 @@
 #include "DataFormats/HGCalDigi/interface/HGCalElectronicsId.h"
 #include "DataFormats/HGCalDigi/interface/HGCalDigiCollections.h"
 
-#include <iostream>  //FIXME
-
 class HGCalRawToDigi : public edm::stream::EDProducer<> {
 public:
   explicit HGCalRawToDigi(const edm::ParameterSet&);
@@ -51,6 +49,8 @@ HGCalRawToDigi::HGCalRawToDigi(const edm::ParameterSet& iConfig)
 void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   // retrieve the FED raw data
   const auto& raw_data = iEvent.get(fedRawToken_);
+  // prepare the output
+  HGCalDigiCollection digis;
   for (const auto& fed_id : fedIds_) {
     const auto& fed_data = raw_data.FEDData(fed_id);
     if (fed_data.size() == 0)
@@ -73,6 +73,9 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
           return 0b11;
         },
         [](HGCalElectronicsId elecID) -> HGCalElectronicsId { return elecID; });
+    auto elecid_to_detid = [](const HGCalElectronicsId& id) -> HGCalDetId {
+      return HGCalDetId(id.raw());  //FIXME not at all!!
+    };
     //FIXME replace lambda's by something more relevant?
 
     auto channeldata = unpacker_->getChannelData();
@@ -84,14 +87,12 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       auto idraw = id.raw();
       auto raw = data.raw();
       edm::LogWarning("HGCalRawToDigi:produce") << "id=" << idraw << ", raw=" << raw << ", common mode index=" << cm;
+      digis.push_back(
+          HGCROCChannelDataFrameSpec(elecid_to_detid(data.id()), data.raw()));  //FIXME to be checked by Yulun.
     }
     for (const auto& badECOND : unpacker_->getBadECOND())
       edm::LogWarning("HGCalRawToDigi:produce") << "Bad ECON-D: " << std::dec << badECOND << ".";
   }
-
-  // prepare the output
-  HGCalDigiCollection digis;
-  //FIXME still to be filled with the unpacker output...
   iEvent.emplace(digisToken_, std::move(digis));
 }
 

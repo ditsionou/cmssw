@@ -43,6 +43,7 @@ process.output = cms.OutputModule("PoolOutputModule",
     outputCommands = cms.untracked.vstring(
         'drop *',
         'keep *_hgcalEmulatedSlinkRawData_*_*',
+        'keep *_hgcalDigis_*_*',
     )
 )
 process.outputRAW = cms.OutputModule("FRDOutputModule",
