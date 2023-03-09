@@ -24,6 +24,7 @@ private:
 
   edm::EDGetTokenT<FEDRawDataCollection> fedRawToken_;
   edm::EDPutTokenT<HGCalDigiCollection> digisToken_;
+  edm::EDPutTokenT<HGCalElecDigiCollection> elecDigisToken_;
 
   const std::vector<unsigned int> fedIds_;
   std::unique_ptr<HGCalUnpacker<HGCalElectronicsId> > unpacker_;
@@ -32,6 +33,7 @@ private:
 HGCalRawToDigi::HGCalRawToDigi(const edm::ParameterSet& iConfig)
     : fedRawToken_(consumes<FEDRawDataCollection>(iConfig.getParameter<edm::InputTag>("src"))),
       digisToken_(produces<HGCalDigiCollection>()),
+      elecDigisToken_(produces<HGCalElecDigiCollection>()),
       fedIds_(iConfig.getParameter<std::vector<unsigned int> >("fedIds")),
       unpacker_(new HGCalUnpacker<HGCalElectronicsId>(
           HGCalUnpackerConfig{.sLinkBOE = iConfig.getParameter<unsigned int>("slinkBOE"),
@@ -51,6 +53,7 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
   const auto& raw_data = iEvent.get(fedRawToken_);
   // prepare the output
   HGCalDigiCollection digis;
+  HGCalElecDigiCollection elec_digis;
   for (const auto& fed_id : fedIds_) {
     const auto& fed_data = raw_data.FEDData(fed_id);
     if (fed_data.size() == 0)
@@ -89,6 +92,7 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       edm::LogWarning("HGCalRawToDigi:produce") << "id=" << idraw << ", raw=" << raw << ", common mode index=" << cm;
       digis.push_back(
           HGCROCChannelDataFrameSpec(elecid_to_detid(data.id()), data.raw()));  //FIXME to be checked by Yulun.
+      elec_digis.push_back(data);
     }
     if (const auto& bad_econds = unpacker_->getBadECOND(); !bad_econds.empty())
       edm::LogWarning("HGCalRawToDigi:produce").log([&bad_econds](auto& log) {
@@ -100,6 +104,7 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       });
   }
   iEvent.emplace(digisToken_, std::move(digis));
+  iEvent.emplace(elecDigisToken_, std::move(elec_digis));
 }
 
 void HGCalRawToDigi::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

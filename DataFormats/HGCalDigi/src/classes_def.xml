@@ -1,4 +1,7 @@
 <lcgdict>
+   <class name="HGCalElectronicsId" ClassVersion="3">
+   <version ClassVersion="3" checksum="2587023721"/>
+   </class>
 
    <class name="HGCROCChannelDataFrame<HGCalDetId>" ClassVersion="3">
    <version ClassVersion="3" checksum="2026905296"/>
