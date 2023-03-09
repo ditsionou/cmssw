@@ -10,3 +10,4 @@
   <use name="EventFilter/HGCalRawToDigi"/>
 </bin>
 <test name="emul_emptyECOND" command="cmsRun ${LOCALTOP}/src/EventFilter/HGCalRawToDigi/test/emulation_and_unpacking_cfg.py mode=empty"/>
+<test name="emul_trivialECOND" command="cmsRun ${LOCALTOP}/src/EventFilter/HGCalRawToDigi/test/emulation_and_unpacking_cfg.py mode=trivial"/>
