@@ -90,8 +90,14 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       digis.push_back(
           HGCROCChannelDataFrameSpec(elecid_to_detid(data.id()), data.raw()));  //FIXME to be checked by Yulun.
     }
-    for (const auto& badECOND : unpacker_->getBadECOND())
-      edm::LogWarning("HGCalRawToDigi:produce") << "Bad ECON-D: " << std::dec << badECOND << ".";
+    if (const auto& bad_econds = unpacker_->getBadECOND(); !bad_econds.empty())
+      edm::LogWarning("HGCalRawToDigi:produce").log([&bad_econds](auto& log) {
+        log << "Bad ECON-D: " << std::dec;
+        std::string prefix;
+        for (const auto& badECOND : bad_econds)
+          log << prefix << badECOND, prefix = ", ";
+        log << ".";
+      });
   }
   iEvent.emplace(digisToken_, std::move(digis));
 }
