@@ -5,7 +5,7 @@ arguments   = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$
 output      = $(ClusterId).out
 error       = $(ClusterId).err
 log         = $(ClusterId).log
-+JobFlavour = "tomorrow"
++JobFlavour = "longlunch"
 MY.WantOS   = "el8"
 
 queue 50 dataset mcmfrag nevts simonly from (
