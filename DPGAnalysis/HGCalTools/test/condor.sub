@@ -1,0 +1,14 @@
+cmssw       = /afs/cern.ch/user/p/psilva/work/HGCal/BEstudies/CMSSW_13_0_0_pre4/src
+eosdir      = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+executable  = runLocalGeneration.sh
+arguments   = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root
+output      = $(ClusterId).out
+error       = $(ClusterId).err
+log         = $(ClusterId).log
++JobFlavour = "tomorrow"
+MY.WantOS   = "el8"
+
+queue 50 dataset mcmfrag nevts simonly from (
+      MinBias_TuneCP5_14TeV-pythia8_CMSSW_13_0_0_pre4_Extended2026D99 EGM-Run3Summer19GS-00020 2500 1
+) 
+
