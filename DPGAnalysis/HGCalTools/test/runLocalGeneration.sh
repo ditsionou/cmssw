@@ -1,9 +1,15 @@
 #!/bin/bash
 
+GEOMETRY=Extended2026D99
+ERA=Phase2C17I13M9
+CONDITIONS=auto:phase2_realistic_T25
 nevts=1000
 simonly=0
-SHORT=c:,m:,n:,s:,o:,h
-LONG=cmssw:,mcm:,nevts:,simonly:,output:,help
+avg_pileup=0
+
+#parse command line options
+SHORT=c:,m:,n:,s:,o:,a:,p:,l:,h
+LONG=cmssw:,mcm:,nevts:,simonly:,output:,aged:,pileup_input:,avg_pileup:,help
 OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
 eval set -- "$OPTS"
 while :
@@ -29,9 +35,28 @@ do
       output="$2"
       shift 2
       ;;
+    -a | --aged )
+      aged="$2"
+      shift 2
+      ;;
+    -p | --pileup_input )
+      pileup_input="$2"
+      shift 2
+      ;;
+    -l | --avg_pileup )
+      avg_pileup="$2"
+      shift 2
+      ;;
     -h | --help)
       echo ""
-      echo "runLocalGeneration.sh -c cmssw_dir -m mcm_fragment -n nevts -s simonlyflag -o output"
+      echo "runLocalGeneration.sh -c cmssw_dir -m mcm_fragment -n nevts -s simonlyflag -o output -a aged"
+      echo "Some examples are the following"
+      echo "  mcm_fragment = min.bias EGM-Run3Summer19GS-00020 "
+      echo "                 ttbar L1T-PhaseIITDRSpring19GS-00005"
+      echo "  simonlyflag = 0/1, if 1 will stop after SIM and copy it to the output"
+      echo "  aged - if not given it will do vanilla"
+      echo "       - startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise"
+      echo "       - 3/ab SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise"
       echo ""
       exit 2
       ;;
@@ -64,9 +89,9 @@ cd ../..
 cd ${work}
 
 #run generation
-cmsDriver.py ${cfg} -s GEN,SIM -n ${nevts} --conditions auto:phase2_realistic_T25 \
-             --geometry Extended2026D99 --era Phase2C17I13M9 --eventcontent FEVTDEBUG \
-             --beamspot HLLHC --datatier GEN-SIM --fileout file:step1.root \
+cmsDriver.py ${cfg} -s GEN,SIM -n ${nevts} \
+             --conditions ${CONDITIONS} --geometry ${GEOMETRY} --era ${ERA} \
+             --eventcontent FEVTDEBUG --beamspot HLLHC --datatier GEN-SIM --fileout file:step1.root \
              --customise_command "from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper; randSvc = RandomNumberServiceHelper(process.RandomNumberGeneratorService); randSvc.populate();"
 
 if [ $simonly == "1" ]; then
@@ -75,3 +100,31 @@ if [ $simonly == "1" ]; then
     exit -1
 fi
 
+#run digitization
+if [ -z $aged ]; then
+    echo "No customisation will be applied - vanilla digis will run"
+else
+    aging_customise="--customise ${aged}"
+    echo "Aging will be customised with ${aging_customise}"
+fi
+if [ -z $avg_pileup ] || [ -z $pileup_input ]; then
+    echo "No pileup scenario"
+else
+    echo "Will generate average pileup of ${avg_pileup} with files from ${pileup_input}"
+    pileup_input=`find ${pileup_input} -iname "*.root" -printf "file:%h/%f,"`
+    pileup_input=${pileup_input::-1}
+    pileup_costumise="--pileup AVE_${avg_pileup}_BX_25ns --pileup_input ${pileup_input}"
+fi
+cmsDriver.py step2 -s DIGI:pdigi_valid,L1TrackTrigger,L1,DIGI2RAW,HLT:@fake2 \
+             --conditions ${CONDITIONS} --geometry ${GEOMETRY} --era ${ERA} \
+             --eventcontent FEVTDEBUG --datatier GEN-SIM-DIGI-RAW -n -1 --filein file:step1.root --fileout file:step2.root \
+             ${aging_customise} ${pileup_costumise}
+
+#run reconstruction step
+cmsDriver.py step3 -s RAW2DIGI,RECO,RECOSIM \
+             --conditions ${CONDITIONS} --geometry ${GEOMETRY} --era ${ERA} \
+             --eventcontent FEVTDEBUG --datatier GEN-SIM-RECO -n -1 --filein file:step2.root --fileout file:step3.root
+
+#move output and cleanup
+mv -v step3.root ${output}
+rm *.*

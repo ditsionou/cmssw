@@ -1,0 +1,17 @@
+cmssw        = /afs/cern.ch/user/p/psilva/work/HGCal/BEstudies/CMSSW_13_0_0_pre4/src
+eosdir       = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+avg_pileup   = 200
+pileup_input = $(eosdir)/MinBias_TuneCP5_14TeV-pythia8_CMSSW_13_0_0_pre4_Extended2026D99 
+executable   = runLocalGeneration.sh
+arguments    = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root -a $(aged) -avg_pileup $(avg_pileup)
+output       = $(ClusterId).out
+error        = $(ClusterId).err
+log          = $(ClusterId).log
++JobFlavour  = "tomorrow"
+MY.WantOS    = "el8"
+
+queue 100 dataset mcmfrag nevts simonly aged from (
+      TTbar_TuneCP5_14TeV-pythia8_PU200_startup_CMSSW_13_0_0_pre4_Extended2026D99 L1T-PhaseIITDRSpring19GS-00005 50 0 SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      TTbar_TuneCP5_14TeV-pythia8_PU200_aged_CMSSW_13_0_0_pre4_Extended2026D99 L1T-PhaseIITDRSpring19GS-00005 50 0 SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+) 
+

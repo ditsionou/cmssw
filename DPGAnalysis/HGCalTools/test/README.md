@@ -15,9 +15,15 @@ Some extra options are:
 * `-p/--pu` the average pileup to generate
 * `--minbias` the directory with min-bias files to use
 * `-a/--aged` the aged scenario to apply
+* `-l/--avg_pileup` average pileup (140, 200, not all values are possible)
+* `-p/--pileup_input` directory with min. bias files for the mixing
 
-The script can be run with condor by using
+Geometry, conditions era are hardcoded at the start of the script for the moment. Edit as needed.
+The script can be run with condor by using:
 
 ```
 condor_submit condor.sub
 ```
+
+A condor submission file with pileup is also available `condor_pu.sub`.
+In both cases edit before submitting :)
