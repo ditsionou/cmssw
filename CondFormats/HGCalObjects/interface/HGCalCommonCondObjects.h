@@ -1,0 +1,19 @@
+#ifndef _condformats_hgcalobjects_hgcalcommoncondobjects_h_
+#define _condformats_hgcalobjects_hgcalcommoncondobjects_h_
+
+#include "CondFormats/Serialization/interface/Serializable.h"
+#include "CondFormats/HGCalObjects/interface/HGCalCondObjectContainer.h"
+#include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
+#include "DataFormats/HGCalDigi/interface/HGCalElectronicsId.h"
+
+typedef HGCalCondObjectContainer<HGCalElectronicsId,HGCalDetId> HGCalElectronicsMap;
+typedef HGCalCondObjectContainer<HGCalElectronicsId,HGCSiliconDetId> HGCalSiElectronicsMap;
+typedef HGCalCondObjectContainer<HGCalElectronicsId,HGCScintillatorDetId> HGCalSciElectronicsMap;
+
+typedef HGCalCondObjectContainer<HGCalDetId,HGCalElectronicsId> HGCalDet2ElectronicsMap;
+typedef HGCalCondObjectContainer<HGCSiliconDetId,HGCalElectronicsId> HGCalSiDet2ElectronicsMap;
+typedef HGCalCondObjectContainer<HGCScintillatorDetId,HGCalElectronicsId> HGCalSciDet2ElectronicsMap;
+
+#endif

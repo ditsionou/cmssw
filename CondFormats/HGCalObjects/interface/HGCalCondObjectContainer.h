@@ -11,7 +11,7 @@
    Templated items can be added, modified and retrieved from the collection.
    The container is serializable as cond format
  */
-template <typename T>
+template <typename K,typename V>
 class HGCalCondObjectContainer {
 public:
 
@@ -19,24 +19,22 @@ public:
   ~HGCalCondObjectContainer(){};
 
   inline void clear() { objColl_.clear(); }
-  inline const std::vector<T> &items() const { return objColl_.items(); }
-  inline const T &item(size_t hashedIndex) const { return objColl_.item(hashedIndex); }
-  inline void insert(std::pair<uint32_t, T> const &a) { objColl_.insert(a); }
-  inline typename std::vector<T>::const_iterator find(uint32_t rawId) const { return objColl_.find(rawId); }
-  inline typename std::vector<T>::const_iterator end() const { return objColl_.end(); }
-  inline void setValue(const uint32_t id, const T &item) { (*this)[id] = item; }
-  inline const HGCalCondObjectContainer<T> &getMap() const { return *this; }
+  inline const std::vector<V> &items() const { return objColl_.items(); }
+  inline const V &item(size_t hashedIndex) const { return objColl_.item(hashedIndex); }
+  inline void insert(std::pair<K, V> const &a) { objColl_.insert(a); }
+  inline typename std::vector<V>::const_iterator find(K rawId) const { return objColl_.find(rawId); }
+  inline typename std::vector<V>::const_iterator end() const { return objColl_.end(); }
+  inline void setValue(const K id, const V &item) { (*this)[id] = item; }
+  inline const HGCalCondObjectContainer<K,V> &getMap() const { return *this; }
   inline size_t size() const { return objColl_.size(); }
-  inline T &operator[](uint32_t rawId) { return objColl_[rawId]; }
-  inline T operator[](uint32_t rawId) const { return objColl_[rawId]; }
+  inline V &operator[](K rawId) { return objColl_[rawId]; }
+  inline V operator[](K rawId) const { return objColl_[rawId]; }
 
 private:
 
-  std::map<uint32_t,T> objColl_;
+  std::map<K,V> objColl_;
 
   COND_SERIALIZABLE;
 };
-
-typedef HGCalCondObjectContainer<uint32_t> HGCalCondUInt32Container;
 
 #endif
