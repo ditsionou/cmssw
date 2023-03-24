@@ -1,5 +1,6 @@
 <use name="FWCore/Framework"/>
-<use name="DataFormats/HGCalDetId"/>
+<use name="DataFormats/HGCalDigi"/>
+<use name="DataFormats/ForwardDetId"/>
 <use name="CondFormats/DataRecord"/>
 <export>
   <lib name="1"/>
