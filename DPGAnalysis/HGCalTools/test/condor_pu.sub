@@ -3,11 +3,13 @@ eosdir       = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
 avg_pileup   = 200
 pileup_input = $(eosdir)/MinBias_TuneCP5_14TeV-pythia8_CMSSW_13_0_0_pre4_Extended2026D99 
 executable   = runLocalGeneration.sh
-arguments    = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root -a $(aged) -avg_pileup $(avg_pileup)
+arguments    = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root -a $(aged) --avg_pileup $(avg_pileup) --pileup_input $(pileup_input)
 output       = $(ClusterId).out
 error        = $(ClusterId).err
 log          = $(ClusterId).log
+transfer_output_files   = ""
 +JobFlavour  = "tomorrow"
++AccountingGroup = "group_u_CMST3.all"
 MY.WantOS    = "el8"
 
 queue 100 dataset mcmfrag nevts simonly aged from (

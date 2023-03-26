@@ -77,8 +77,9 @@ echo "Output will be available in ${outdir}"
 
 #setup CMSSW
 work=`pwd`
-cd ${cmssw}/src
-eval `scram r -sh`
+cd ${cmssw}
+source /cvmfs/cms.cern.ch/cmsset_default.sh
+cmsenv
 # Download fragment from McM
 cfg=Configuration/GenProduction/python/${mcmfragment}-fragment.py
 curl -s -k https://cms-pdmv.cern.ch/mcm/public/restapi/requests/get_fragment/${mcmfragment} --retry 3 --create-dirs -o ${cfg}
@@ -127,4 +128,4 @@ cmsDriver.py step3 -s RAW2DIGI,RECO,RECOSIM \
 
 #move output and cleanup
 mv -v step3.root ${output}
-rm *.*
+rm *.root
