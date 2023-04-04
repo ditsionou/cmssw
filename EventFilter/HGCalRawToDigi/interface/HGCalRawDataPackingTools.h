@@ -6,6 +6,15 @@
 
 namespace hgcal {
   namespace econd {
+    struct ERxData;
+    /**
+     * pack the ROC data to the ECON-D format dependending on
+     *   - characterization mode : (TcTp + ADC + TOT + TOA) fixed 32b
+     *   - normal mode : size and fields depend on the TcTp flags
+     * \note based on Fig. 20 of ECON-D specifications
+     * \return a vector of new words
+     */
+    std::vector<uint32_t> produceERxData(const std::vector<bool>&, const ERxData&, bool, bool, bool, bool);
     /**
      * \short packs the ROC data to the ECON-D format dependending on
      *   - characterization mode : (TcTp + ADC + TOT + TOA) fixed 32b
@@ -15,7 +24,7 @@ namespace hgcal {
      *   the msb is updated as the reference is passed
      */
     std::vector<uint32_t> addChannelData(uint8_t& msb,
-                                         uint16_t tctp,
+                                         uint8_t tctp,
                                          uint16_t adc,
                                          uint16_t tot,
                                          uint16_t adcm,
@@ -31,9 +40,9 @@ namespace hgcal {
      * \return a vector with 1 or 2 32b words
      */
     std::vector<uint32_t> eRxSubPacketHeader(
-        uint16_t stat, uint16_t ham, bool bitE, uint16_t cm0, uint16_t cm1, std::vector<bool> chmap);
+        uint8_t stat, uint8_t ham, bool bitE, uint16_t cm0, uint16_t cm1, std::vector<bool> chmap);
     std::vector<uint32_t> eRxSubPacketHeader(
-        uint16_t stat, uint16_t ham, bool bitE, uint16_t cm0, uint16_t cm1, uint64_t chmap);
+        uint8_t stat, uint8_t ham, bool bitE, uint16_t cm0, uint16_t cm1, uint64_t chmap);
 
     /**
      * \short builds the two ECON-D header words
@@ -53,8 +62,7 @@ namespace hgcal {
                                             uint16_t l1a,
                                             uint8_t orb,
                                             bool bitS,
-                                            uint8_t RR,
-                                            uint8_t ehCRC);
+                                            uint8_t RR);
     /**
      * \short builds a trailing idle word
      * \note based on Fig. 33 of the ECON-D specs
