@@ -1,5 +1,7 @@
 # DPGAnalysis/HGCalTools
 
+Install on top of 13x with `git cms-checkout-topic CMS-HGCAL:13x_hgcalprod`
+
 ## Local production scripts
 
 These scripts run with HTCondor at CERN. The base script can be run as
