@@ -1,7 +1,7 @@
 cmssw       = /afs/cern.ch/user/p/psilva/work/HGCal/BEstudies/CMSSW_13_0_0_pre4/src
 eosdir      = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
 executable  = runLocalGeneration.sh
-arguments   = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root -b diphotonEEBias
+arguments   = -c $(cmssw) -m $(mcmfrag) -n $(nevts) -s $(simonly) -o $(eosdir)/$(dataset)/Events_$(ProcId).root -b diphotonEEBias -a $(aged)
 output      = $(ClusterId).out
 error       = $(ClusterId).err
 log         = $(ClusterId).log
