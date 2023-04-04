@@ -8,8 +8,8 @@ simonly=0
 avg_pileup=0
 
 #parse command line options
-SHORT=c:,m:,n:,s:,o:,a:,p:,l:,h
-LONG=cmssw:,mcm:,nevts:,simonly:,output:,aged:,pileup_input:,avg_pileup:,help
+SHORT=c:,m:,n:,s:,o:,a:,p:,l:,b:,h
+LONG=cmssw:,mcm:,nevts:,simonly:,output:,aged:,pileup_input:,avg_pileup:,bias:,help
 OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
 eval set -- "$OPTS"
 while :
@@ -47,9 +47,13 @@ do
       avg_pileup="$2"
       shift 2
       ;;
+    -b | --bias )
+      bias=$2
+      shift 2
+      ;;
     -h | --help)
       echo ""
-      echo "runLocalGeneration.sh -c cmssw_dir -m mcm_fragment -n nevts -s simonlyflag -o output -a aged"
+      echo "runLocalGeneration.sh -c cmssw_dir -m mcm_fragment -n nevts -s simonlyflag -o output -a aged -b bias"
       echo "Some examples are the following"
       echo "  mcm_fragment = min.bias EGM-Run3Summer19GS-00020 "
       echo "                 ttbar L1T-PhaseIITDRSpring19GS-00005"
@@ -57,6 +61,7 @@ do
       echo "  aged - if not given it will do vanilla"
       echo "       - startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise"
       echo "       - 3/ab SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise"
+      echo "  bias - if given applies a bias as defined in DPGAnalysis/HGCalTools/python/endcapbias_cfi.py"
       echo ""
       exit 2
       ;;
@@ -80,20 +85,32 @@ work=`pwd`
 cd ${cmssw}
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 cmsenv
+
 # Download fragment from McM
-cfg=Configuration/GenProduction/python/${mcmfragment}-fragment.py
-curl -s -k https://cms-pdmv.cern.ch/mcm/public/restapi/requests/get_fragment/${mcmfragment} --retry 3 --create-dirs -o ${cfg}
-[ -s ${cfg} ] || exit $?;
+if [[ "$mcmfragment" == *"/python/"* ]]; then
+    echo "This is a standard configuration file so we won't download it from MCM"
+    cfg=$mcmfragment
+else
+    echo "This is a MCM fragment, getting it from the webserver"
+    cfg=Configuration/GenProduction/python/${mcmfragment}-fragment.py
+    curl -s -k https://cms-pdmv.cern.ch/mcm/public/restapi/requests/get_fragment/${mcmfragment} --retry 3 --create-dirs -o ${cfg}
+    [ -s ${cfg} ] || exit $?;
+fi
 ls ${cfg}
 scram b
 cd ../..
 cd ${work}
 
 #run generation
+if [ -z ${bias} ]; then
+    costumise_bias=""
+else
+    costumise_bias="--customise DPGAnalysis/HGCalTools/endcapbias_cfi.${bias}"
+fi
 cmsDriver.py ${cfg} -s GEN,SIM -n ${nevts} \
-             --conditions ${CONDITIONS} --geometry ${GEOMETRY} --era ${ERA} \
+             --conditions ${CONDITIONS} --geometry ${GEOMETRY} --era ${ERA} ${costumise_bias} \
              --eventcontent FEVTDEBUG --beamspot HLLHC --datatier GEN-SIM --fileout file:step1.root \
-             --customise_command "from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper; randSvc = RandomNumberServiceHelper(process.RandomNumberGeneratorService); randSvc.populate();"
+             --customise_command "from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper; randSvc = RandomNumberServiceHelper(process.RandomNumberGeneratorService); randSvc.populate();" 
 
 if [ $simonly == "1" ]; then
     echo "This is a simonly production - moving to output"
