@@ -88,17 +88,30 @@ HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiC
     if (ignoreCCE_) {
       siop.core.cce = 1.0;
     } else {
-      //in the region where measurements are available we have used a linear approximation in log (f)
-      //the extrapolation to the lower fluence regions is done with an error function matched at the boundary
-      if (siop.fluence > cceParam[0]) {
-        siop.core.cce = cceParam[2] * siop.lnfluence + cceParam[1];
-      } else {
-        double at = cceParam[2] * log(cceParam[0]) + cceParam[1];
-        double bt = -cceParam[0] / TMath::ErfcInverse(1. / at);
-        siop.core.cce = at * TMath::Erfc((siop.fluence - cceParam[0]) / bt);
-      }
+      
+      float a=cceParam[0];
+      float b=cceParam[1];
+      siop.core.cce = a*siop.lnfluence+b;
 
-      siop.core.cce = std::max((float)0., siop.core.cce);
+      //regularize near the extremities (if needed)
+      float x=siop.fluence;
+      float xm=TMath::Exp((95-b)/a);
+      float xp=TMath::Exp((5-b)/a);
+      if(x<xm) {
+        float m=50;
+        float tm=TMath::ErfInverse(1-(a/m)*TMath::Log(xm)-b/m);
+        float sigmam=-(2*m*xm)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tm,2));
+        float x0m=xm-sigmam*tm;
+        siop.core.cce = m*(1-TMath::Erf((x-x0m)/sigmam));
+      } else if(x>xp) {
+        float p=50;
+        float tp=TMath::ErfInverse(1-(a/p)*TMath::Log(xp)-b/p);
+        float sigmap=-(2*p*xp)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tp,2));
+        float x0p=xp-sigmap*tp;
+        siop.core.cce = p*(1-TMath::Erf((x-x0p)/sigmap));
+      }
+      
+      siop.core.cce = siop.core.cce/100.;
     }
   }
 
