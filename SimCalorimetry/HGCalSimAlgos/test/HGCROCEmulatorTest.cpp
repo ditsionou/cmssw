@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   std::cout << cfg << std::endl << std::endl;
 
   //simulated data arrays
-  HGCROCSimHitData chargeColl, toa;
+  HGCROCSimHitData_t chargeColl, toa;
   size_t itbx(9);
 
   //output dataframe
@@ -79,15 +79,16 @@ int main(int argc, char **argv) {
   //digitizer
   HGCROCEmulator<HGCROCChannelDataFrameSpec> roc(cfg);
   float adcLSB(roc.adcLSB()), totLSB(roc.totLSB()), toaLSB(roc.toaLSB());
-  HGCROCPreampPulseShape pulseShape = roc.adcPulse();
+  HGCROCPreampPulseShape_t pulseShape = roc.adcPulse();
 
   //TEST: in-time charge deposits only
   //do once in default mode and another in characterization mode
   chargeColl.fill(0.f);
   toa.fill(0.f);
   for (size_t m = 0; m < 2; m++) {
-    roc.configureMode(m == 0 ? roc.HGCROCOperationMode::DEFAULT
-                             : roc.HGCROCOperationMode::CHARACTERIZATION);
+    roc.setOperationMode(m == 0 ?
+                         HGCROCOperationMode::DEFAULT :
+                         HGCROCOperationMode::CHARACTERIZATION);
 
     for (unsigned long i = 0; i < ntrials; i++) {
       //prepare charge/time injection
@@ -98,9 +99,9 @@ int main(int argc, char **argv) {
       //run and check digitization output
       roc.run(dfr, chargeColl, toa, hre, itbx);
       uint16_t digitoa = dfr.toa();
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
-      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adcm1 = dfr.adcm1(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
 
       //no ADC for BX-1 in all cases
       massert(adcm1 == 0, dfr, chargeColl, toa);
@@ -118,7 +119,7 @@ int main(int argc, char **argv) {
       if (qin < totOnset) {
         massert(!dfr.tc(), dfr, chargeColl, toa, "Expect Tc=0");
         massert(!dfr.tp(), dfr, chargeColl, toa, "Expect Tp=0");
-        if (roc.opMode() == roc.HGCROCOperationMode::DEFAULT) {
+        if (roc.currentOpMode() == HGCROCOperationMode::DEFAULT) {
           massert(dfr.tot() == 0, dfr, chargeColl, toa, "Expect ToT=0");
         }
 
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
       else {
         massert(dfr.tc(), dfr, chargeColl, toa, "Expect Tc=1");
         massert(dfr.tp(), dfr, chargeColl, toa, "Expect Tp=1");
-        if (roc.opMode() == roc.HGCROCOperationMode::DEFAULT) {
+        if (roc.currentOpMode() == HGCROCOperationMode::DEFAULT) {
           massert(adc == 0, dfr, chargeColl, toa, "Expect ADC=0");
         }
         int delta = floor(fabs(qin / totLSB - (tot + 0.5)));
@@ -138,13 +139,13 @@ int main(int argc, char **argv) {
       }
     }
 
-    std::cout << "[In-time only charge deposits] OK for opMode=" << roc.opMode() << std::endl;
+    std::cout << "[In-time only charge deposits] OK for opMode=" << roc.currentOpMode() << std::endl;
   }
 
   //test ADC <-> TOT transition in default mode
   //scan the neighborhood of the totOnset threshold
   //firs in steps of adcLSB, second in steps of tdcLSB
-  roc.configureMode(roc.HGCROCOperationMode::DEFAULT);
+  roc.setOperationMode(HGCROCOperationMode::DEFAULT);
   toa.fill(0.f);
   chargeColl.fill(0.f);
   for (size_t k = 0; k < 2; k++) {
@@ -154,8 +155,8 @@ int main(int argc, char **argv) {
       float qin = totOnset + i * deltaqin;
       chargeColl[itbx] = qin;
       roc.run(dfr, chargeColl, toa, hre, itbx);
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
 
       if (i < 0) {
         massert(tot == 0, dfr, chargeColl, toa, "Unexpected ToT measurement");
@@ -173,9 +174,10 @@ int main(int argc, char **argv) {
   //test charge injection @ BX-1 (within ADC range)
   //inject random charge in BX-1 and check the leakage
   for (size_t m = 0; m < 2; m++) {
-    roc.configureMode(m == 0 ? roc.HGCROCOperationMode::DEFAULT
-                             : roc.HGCROCOperationMode::CHARACTERIZATION);
-
+    roc.setOperationMode(m == 0 ?
+                         HGCROCOperationMode::DEFAULT :
+                         HGCROCOperationMode::CHARACTERIZATION);
+    
     toa.fill(0.f);
     chargeColl.fill(0.f);
 
@@ -184,9 +186,9 @@ int main(int argc, char **argv) {
       chargeColl[itbx - 1] = qin;
       roc.run(dfr, chargeColl, toa, hre, itbx);
 
-      uint16_t adc = dfr.adc(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
-      uint16_t adcm1 = dfr.adcm1(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
-      uint16_t tot = dfr.tot(roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adc = dfr.adc(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t adcm1 = dfr.adcm1(roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION);
+      uint16_t tot = dfr.tot(roc.currentOpMode() ==HGCROCOperationMode::CHARACTERIZATION);
 
       //both operation modes check resolution of leaked pulse in BX
       float qleak = qin * pulseShape[3];
@@ -194,7 +196,7 @@ int main(int argc, char **argv) {
       massert(delta < 1, dfr, chargeColl, toa, "Leaked charge has poor resolution");
 
       //mode==CHAR : check ADC BX-1 = 0 and ADC-TOT resolution
-      if (roc.opMode() == roc.HGCROCOperationMode::CHARACTERIZATION) {
+      if (roc.currentOpMode() == HGCROCOperationMode::CHARACTERIZATION) {
         massert(adcm1 == 0, dfr, chargeColl, toa, "Unexpected ADC BX-1 reading");
 
         float delta = fabs((adc + 0.5) * adcLSB - (tot + 0.5) * totLSB);
@@ -207,7 +209,7 @@ int main(int argc, char **argv) {
         massert(tot == 0, dfr, chargeColl, toa, "Unexpected TOT measurement");
       }
     }
-    std::cout << "[BX-1 charge injection] OK with mode=" << roc.opMode() << std::endl;
+    std::cout << "[BX-1 charge injection] OK with mode=" << roc.currentOpMode() << std::endl;
   }
 
   //all tests done

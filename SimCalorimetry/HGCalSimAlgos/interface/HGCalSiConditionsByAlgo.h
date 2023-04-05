@@ -19,6 +19,7 @@ class HGCalSiConditionsByAlgo : public HGCalRadiationMap {
 public:
 
   enum HGCalSiConditionsAlgoBits_t { FLUENCE, CCE };
+  enum HGCalSiSensorTypes_t { HD120, LD200, LD300, HD200 };
 
   struct SiCellOpCharacteristicsCore {
     SiCellOpCharacteristicsCore() : cce(0.), ileak(0.) {};
@@ -28,7 +29,7 @@ public:
   struct SiCellOpCharacteristics {
     SiCellOpCharacteristics() : fluence(0.), lnfluence(0.) {}
     SiCellOpCharacteristicsCore core;
-    float fluence, lnfluence;
+    float fluence, lnfluence, mipEqfC, capacitance;
   };
 
   HGCalSiConditionsByAlgo();
@@ -40,14 +41,11 @@ public:
   void setIleakParam(const std::vector<double> &pars) { ileakParam_ = pars; }
 
   /**
-     @short set the cce parameters to use
+     @short set the charge collection parameters to use
   */
-  void setCceParam(const std::vector<double> &parsFine,
-                   const std::vector<double> &parsThin,
-                   const std::vector<double> &parsThick) {
-    cceParam_.push_back(parsFine);   //120
-    cceParam_.push_back(parsThin);   //200
-    cceParam_.push_back(parsThick);  //300
+  void setCceParam(HGCalSiSensorTypes_t &sensType,const std::vector<double> &pars) { 
+    cceParam_[sensType]=pars; 
+    if(sensType==HGCalSiSensorTypes_t::LD200) cceParam_[HGCalSiSensorTypes_t::HD200]=cceParam_[sensType];
   }
 
   /**
@@ -61,12 +59,12 @@ public:
   SiCellOpCharacteristics getConditionsByAlgo(DetId::Detector &subdet,
                                               int &layer,
                                               double &radius,
-                                              unsigned int &cellThick);
+                                              HGCalSiSensorTypes_t &sensType);
   SiCellOpCharacteristicsCore getCoreConditionsByAlgo(DetId::Detector &subdet,
                                                       int &layer,
                                                       double &radius,
-                                                      unsigned int &cellThick) {
-    return getConditionsByAlgo(subdet,layer,radius,cellThick).core;
+                                                      HGCalSiSensorTypes_t &sensType) {
+    return getConditionsByAlgo(subdet,layer,radius,sensType).core;
   }
   SiCellOpCharacteristicsCore getCoreConditionsByAlgo(unsigned int &rawId, double &radius) {
 
@@ -77,29 +75,31 @@ public:
     //start by assuming this is HGCAL if not correct for HFNose (although the outcome should be the same)
     HGCSiliconDetId hgcsi(rawId);
     int layer=hgcsi.layer();
-    unsigned int cellThick=hgcsi.type();
+    HGCalSiSensorTypes_t sensType=(HGCalSiSensorTypes_t)hgcsi.type();
     if(subdet==ForwardSubdetector::HFNose) {
       HFNoseDetId hfnose(rawId);
       layer=hfnose.layer();
-      cellThick=hfnose.type();
+      sensType=(HGCalSiSensorTypes_t)hfnose.type();
     }
 
-    return getCoreConditionsByAlgo(det,layer,radius,cellThick);
+    return getCoreConditionsByAlgo(det,layer,radius,sensType);
   }
   
   /**
      @short determines the conditions using all the relevant parameterizations
    */
   SiCellOpCharacteristics getSiCellOpCharacteristics(double &cellVol,
+                                                     double &capacitance,
+                                                     double &mipEqfC,
                                                      std::vector<double> &cceParam,
                                                      DetId::Detector &subdet,
                                                      int &layer,
                                                      double &radius);
 
-  std::array<double, 3> &getMipEqfC() { return mipEqfC_; }
-  std::array<double, 3> &getCellCapacitance() { return cellCapacitance_; }
-  std::array<double, 3> &getCellVolume() { return cellVolume_; }
-  std::vector<std::vector<double> > &getCCEParam() { return cceParam_; }
+  std::map<HGCalSiSensorTypes_t,double> &getMipEqfC() { return mipEqfC_; }
+  std::map<HGCalSiSensorTypes_t,double> &getCellCapacitance() { return cellCapacitance_; }
+  std::map<HGCalSiSensorTypes_t,double> &getCellVolume() { return cellVolume_; }
+  std::map<HGCalSiSensorTypes_t,std::vector<double> > &getCCEParam() { return cceParam_; }
   std::vector<double> &getIleakParam() { return ileakParam_; }
 
 private:
@@ -107,9 +107,9 @@ private:
   //flags used to disable specific components of the Si operation parameter
   bool ignoreFluence_, ignoreCCE_;
   
-  //vector of three params, per sensor type: 0:120 [mum], 1:200, 2:300
-  std::array<double, 3> mipEqfC_, cellCapacitance_, cellVolume_;
-  std::vector<std::vector<double> > cceParam_;
+  //maps parameters for sensor types
+  std::map<HGCalSiSensorTypes_t,double> mipEqfC_, cellCapacitance_, cellVolume_;
+  std::map<HGCalSiSensorTypes_t,std::vector<double> > cceParam_;
 
   //leakage current/volume vs fluence
   std::vector<double> ileakParam_;

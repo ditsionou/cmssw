@@ -22,8 +22,8 @@ The main parameters are the following
 """
 hgcrocEmulator = cms.PSet( 
     opMode = cms.uint32(0),
-    adcFSC = cms.double(160.),
-    adcPulse = cms.vdouble(0.00, 0.017,   0.817,   0.163,  0.003,  0.000),
+    adcFSC = cms.double(160.),    
+    adcPulse = cms.vdouble(0., 0., 1.0, 0.0963/0.9037, 0., 0.),
     totFSC = cms.double(10000.),
     totOnset = cms.double(160.),
     totBxUndershoot = cms.uint32(2),
@@ -33,7 +33,6 @@ hgcrocEmulator = cms.PSet(
     toaFSC = cms.double(25.),
     toaJitter = cms.double(25.),
     toaClockOffset = cms.double(0.02),
-    pulseAvgT = cms.vdouble(0., 0., 1.0, 0.0963/0.9037, 0., 0.),
     tdcResolutionInPs = cms.double( 0.001 ),
     pedestal = cms.double(0.),
     noiseJitter = cms.double(0.4),

@@ -7,29 +7,33 @@ HGCalSiConditionsByAlgo::HGCalSiConditionsByAlgo()
   : ignoreFluence_(false),
     ignoreCCE_(false) {
   
-  //fine sensors: 120 mum -  67: MPV of charge[number of e-]/mum for a mip in silicon; srouce PDG
+  //120 mum -  67: MPV of charge[number of e-]/mum for a mip in silicon; source PDG
   const double mipEqfC_120 = 120. * 67. * qe2fc_;
-  mipEqfC_[0] = mipEqfC_120;
+  mipEqfC_[HGCalSiSensorTypes_t::HD120] = mipEqfC_120;
   const double cellCapacitance_120 = 50;
-  cellCapacitance_[0] = cellCapacitance_120;
+  cellCapacitance_[HGCalSiSensorTypes_t::HD120] = cellCapacitance_120;
   const double cellVolume_120 = 0.56 * (120.e-4);
-  cellVolume_[0] = cellVolume_120;
+  cellVolume_[HGCalSiSensorTypes_t::HD120] = cellVolume_120;
 
-  //thin sensors: 200 mum
+  //200 mum
   const double mipEqfC_200 = 200. * 70. * qe2fc_;
-  mipEqfC_[1] = mipEqfC_200;
-  const double cellCapacitance_200 = 65;
-  cellCapacitance_[1] = cellCapacitance_200;
+  mipEqfC_[HGCalSiSensorTypes_t::LD200] = mipEqfC_200;
+  mipEqfC_[HGCalSiSensorTypes_t::HD200] = mipEqfC_200;
+  const double cellCapacitance_LD200 = 65;
+  const double kfactLD2HD = 0.56/1.26;
+  cellCapacitance_[HGCalSiSensorTypes_t::LD200] = cellCapacitance_LD200;
+  cellCapacitance_[HGCalSiSensorTypes_t::HD200] = cellCapacitance_LD200 * kfactLD2HD;
   const double cellVolume_200 = 1.26 * (200.e-4);
-  cellVolume_[1] = cellVolume_200;
+  cellVolume_[HGCalSiSensorTypes_t::LD200] = cellVolume_200;
+  cellVolume_[HGCalSiSensorTypes_t::HD200] = cellVolume_200 * kfactLD2HD;
 
-  //thick sensors: 300 mum
+  //300 mum
   const double mipEqfC_300 = 300. * 73. * qe2fc_;
-  mipEqfC_[2] = mipEqfC_300;
+  mipEqfC_[HGCalSiSensorTypes_t::LD300] = mipEqfC_300;
   const double cellCapacitance_300 = 45;
-  cellCapacitance_[2] = cellCapacitance_300;
+  cellCapacitance_[HGCalSiSensorTypes_t::LD300] = cellCapacitance_300;
   const double cellVolume_300 = 1.26 * (300.e-4);
-  cellVolume_[2] = cellVolume_300;
+  cellVolume_[HGCalSiSensorTypes_t::LD300] = cellVolume_300;
 }
 
 //
@@ -47,22 +51,27 @@ void HGCalSiConditionsByAlgo::setDoseMap(const std::string &fullpath, unsigned i
 HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getConditionsByAlgo(DetId::Detector &subdet,
                                                                                               int &layer,
                                                                                               double &radius,
-                                                                                              unsigned int &cellThick) {
+                                                                                              HGCalSiSensorTypes_t &sensType) {
   //get the appropriate parameters
-  double cellVol(cellVolume_[cellThick]);
-  std::vector<double> &cceParam = cceParam_[cellThick];
+  double cellVol(cellVolume_[sensType]);
+  double capacitance(cellCapacitance_[sensType]);
+  double mipEqfC(mipEqfC_[sensType]);
+  std::vector<double> &cceParam = cceParam_[sensType];
   
   //call baseline method and add to cache
-  return getSiCellOpCharacteristics(cellVol, cceParam, subdet, layer, radius);
+  return getSiCellOpCharacteristics(cellVol, capacitance, mipEqfC, cceParam, subdet, layer, radius);
 }
 
 //
 HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiCellOpCharacteristics(double &cellVol,
+                                                                                                     double &capacitance,
+                                                                                                     double &mipEqfC,
                                                                                                      std::vector<double> &cceParam,
                                                                                                      DetId::Detector &subdet,
                                                                                                      int &layer,
                                                                                                      double &radius) {
-  SiCellOpCharacteristics siop;
+  SiCellOpCharacteristics siop;  
+  siop.capacitance = capacitance;
 
   //leakage current and CCE [muA]
   if (ignoreFluence_) {
@@ -113,6 +122,9 @@ HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiC
       
       siop.core.cce = siop.core.cce/100.;
     }
+
+    //apply CCE to the mip equivalent
+    siop.mipEqfC = mipEqfC * siop.core.cce;
   }
 
   return siop;

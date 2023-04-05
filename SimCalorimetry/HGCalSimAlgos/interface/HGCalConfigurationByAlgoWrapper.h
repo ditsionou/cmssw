@@ -4,22 +4,11 @@
 #include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
 #include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
 #include "DataFormats/ForwardDetId/interface/HFNoseDetId.h"
+#include "DataFormats/HGCalDigi/interface/HGCalElectronicsId.h"
 
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCROCEmulator.h"
 #include "SimCalorimetry/HGCalSimAlgos/interface/HGCalSiConditionsByAlgo.h"
 #include "SimCalorimetry/HGCalSimAlgos/interface/HGCalSiPMonTileConditionsByAlgo.h"
-
-//this should move to electronics class (temporary for now)
-namespace hgcroc {
-  struct HGCROCConfiguration {
-    HGCROCConfiguration() : gain(0), thrADC(0), bxp1leak(0.), enc(0.), enc_s(0.), enc_p(0.), enc_cm(0.) {}
-    unsigned short gain, thrADC;
-    float bxp1leak,enc,enc_s,enc_p,enc_cm;
-  };
-  
-  enum HGCROCDynamicRange_t { q80fC, q160fC, q320fC, AUTO };
-  
-  typedef std::array<float, 6> HGCROCPreampPulseShape_t;
-}
 
 
 /**
@@ -27,73 +16,87 @@ namespace hgcroc {
    @short this class finds the electronics configuration algorithmically given a set of DetIds
    it allows the user to retrieve the front-end configuration for a given DetId
    given the specifities of the Si and SiPM-on-tile sections and of the HFNose this class is templated
-   <Conditions, DetId>
-   The baseline configuration is encoded in a struct (HGCROCConfiguration) containing the gain, a ZS threshold, the leakage to the next bunch and the noise (total, common mode and series+parallel contributions to total)
+   <Conditions, DetId> or <Conditions, LogicalId>
+   The baseline configuration will be encoded in a struct (HGCROCConfiguration) containing the gain, a ZS threshold, the leakage to the next bunch and the noise (total, common mode and series+parallel contributions to total)
 */
-template <class C, class D = DetId>
+template <class C, class D>
 class HGCalConfigurationByAlgoWrapper {
 public:
+
+  enum HGCalConfigurationAlgos { BYMAJORITY, BYMAXGAIN };
   
-  HGCalConfigurationByAlgoWrapper();
+  HGCalConfigurationByAlgoWrapper() { }
   
-  ~HGCalConfigurationByAlgoWrapper() { }
+  virtual ~HGCalConfigurationByAlgoWrapper() = default;
+
+  /**
+  @short virtual method which maps a DetId/LogicalId to a configurable key 
+  and which is used to group several to sensors (e.g. to a module or a ROC)
+  different classes should override this method
+  */
+  virtual uint32_t toConfigurableKey(D &d) = 0;
+
+  /**
+   @short adds to an internal map of separate entities which should have a common configuraiton
+  */
+  inline void addConfigurableToEntity(D &d, C &conf) { 
+    uint32_t key = toConfigurableKey(d);
+    if(configurableEntities_.count(key)==0 ) {
+      std::vector<C> newentry;
+      configurableEntities_[key] = newentry;
+    }
+    configurableEntities_[key].push_back(conf);
+  }
+
+  /**
+   @short clears current maps
+  */
+  inline void resetConfigurableEntities() { configurableEntities_.clear(); }
 
   /**
      @short finds the best electronics configuration fom a map of conditions
+     @param algo - the algorithm version can take the values 
+                   BYMAJORITY - the configuration with largest counts is used
+                   BYMAXGAIN - the channel which requires maximal gain (min dynamical range) is used
+     @param resetAfter - can be used to avoid resetting the map of configurables
    */
-  void findFEConfigurationByAlgo(std::map<uint32_t, C> &);
+  void findFEConfigurationByAlgo(int algo,bool resetAfter=true);
 
   /**
-     @short returns the configuration for a given det id
+     @short returns the configuration for a given identifier
+     if not found returns a default config where the gain is HGCROCDynamicRange_t::NULL
    */
-  hgcroc::HGCROCConfiguration getConfigurationForDetId(const D &detID);
+  inline HGCROCConfiguration getConfigurationFor(const D &d) {
+    uint32_t key = toConfigurableKey(d);
+    auto it = confCache_.begin();
+    if(it!=confCache_.end()) return it->second;
+    return  HGCROCConfiguration();
+  }
 
   /**
-     @short getters for private members
-   */
-  const hgcroc::HGCROCPreampPulseShape_t &preampPulseForGain(hgcroc::HGCROCDynamicRange_t gain) { return preampPulses_[gain];  };
-  const std::vector<hgcroc::HGCROCPreampPulseShape_t> &getPreampPulses() { return preampPulses_; }
-  const double &getFSCForGain(hgcroc::HGCROCDynamicRange_t gain) { return chargeAtFullScaleADCPerGain_[gain]; }
-  const std::vector<double> &getFSC() { return chargeAtFullScaleADCPerGain_; }
-  const double &getLSBForGain(hgcroc::HGCROCDynamicRange_t gain) { return lsbPerGain_[gain]; }
-  const std::vector<double> &getLSB() { return lsbPerGain_; }
-  const std::vector<double> &getENCsParamForGain(hgcroc::HGCROCDynamicRange_t gain) { return encsParam_[gain]; }
-  const std::vector<std::vector<double> > &getENCsParam() { return encsParam_; }
+    @short fills configurations from file
+  */
+  void fillConfigurationsFrom(std::string);
 
   /**
-     @short returns the TOT onset threshold (a small tolerance is subtracted)
-   */
-  double getTOTOnset(hgcroc::HGCROCDynamicRange_t gainIdx,double vtol=1e-6);
-
-  /**
-     @short given the gain and the cell capacitance returns an estimate of the series noise
-   */
-  double estimateENCs(hgcroc::HGCROCDynamicRange_t gainIdx,double cap);
-  
-  /**
-     @short returns the parallel noise corresponding the most favorable DAQ configuraiton
-   */
-  double estimateOptimalENCp(double ileak);
+    @short saves configurations to file
+  */
+  void saveConfigurationsTo(std::string);
   
 private:
-  
+
+  //configurable entities map
+  std::map<uint32_t, std::vector<C> > configurableEntities_;
+
   //cache of configurations associated by identifier
-  std::map<uint32_t, hgcroc::HGCROCConfiguration> confCache_;
-
-  //electronics series noise polynomial coeffs (per gain)
-  std::vector<std::vector<double> > encsParam_;
-
-  //ADC pulses (per gain)
-  std::vector<hgcroc::HGCROCPreampPulseShape_t> preampPulses_;
-
-  //lsb and dynamic range (per gain)
-  std::vector<double> lsbPerGain_, chargeAtFullScaleADCPerGain_;
-
+  std::map<uint32_t, HGCROCConfiguration> confCache_;
 };
 
-#include "HGCalConfigurationByAlgoWrapper.icc"
-
-template class HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HGCSiliconDetId>;
-template class HGCalConfigurationByAlgoWrapper<HGCalSiPMonTileConditionsByAlgo::SiPMonTileCharacteristicsCore,HGCScintillatorDetId>;
+//define typedef for the different flavours of templated classes
+typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HGCSiliconDetId> HGCalSiGeoConfigurationByAlgo;
+//typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HGCalElectronicsId> HGCalSiLogConfigurationByAlgo;
+//typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HFNoseDetId> HGCalHFNoseGeoConfigurationByAlgo;
+//typedef HGCalConfigurationByAlgoWrapper<HGCalSiPMonTileConditionsByAlgo::SiPMonTileCharacteristicsCore,HGCScintillatorDetId> HGCalSiPMonTileGeoConfigurationByAlgo;
+//typedef HGCalConfigurationByAlgoWrapper<HGCalSiPMonTileConditionsByAlgo::SiPMonTileCharacteristicsCore,HGCalElectronicsId> HGCalSiPMonTileLogConfigurationByAlgo;
 
 #endif

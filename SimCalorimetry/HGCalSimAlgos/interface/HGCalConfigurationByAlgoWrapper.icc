@@ -72,6 +72,42 @@ double HGCalConfigurationByAlgoWrapper<C,D>::estimateOptimalENCp(double ileak) {
     return 457.15 * pow(ileak, 0.57);
 }
 
+ /**
+     @short getters for private members
+   */
+  const hgcroc::HGCROCPreampPulseShape_t &preampPulseForGain(hgcroc::HGCROCDynamicRange_t gain) { return preampPulses_[gain];  };
+  const std::vector<hgcroc::HGCROCPreampPulseShape_t> &getPreampPulses() { return preampPulses_; }
+  const double &getFSCForGain(hgcroc::HGCROCDynamicRange_t gain) { return chargeAtFullScaleADCPerGain_[gain]; }
+  const std::vector<double> &getFSC() { return chargeAtFullScaleADCPerGain_; }
+  const double &getLSBForGain(hgcroc::HGCROCDynamicRange_t gain) { return lsbPerGain_[gain]; }
+  const std::vector<double> &getLSB() { return lsbPerGain_; }
+  const std::vector<double> &getENCsParamForGain(hgcroc::HGCROCDynamicRange_t gain) { return encsParam_[gain]; }
+  const std::vector<std::vector<double> > &getENCsParam() { return encsParam_; }
+
+  /**
+     @short returns the TOT onset threshold (a small tolerance is subtracted)
+   */
+  double getTOTOnset(hgcroc::HGCROCDynamicRange_t gainIdx,double vtol=1e-6);
+
+  /**
+     @short given the gain and the cell capacitance returns an estimate of the series noise
+   */
+  double estimateENCs(hgcroc::HGCROCDynamicRange_t gainIdx,double cap);
+  
+  /**
+     @short returns the parallel noise corresponding the most favorable DAQ configuraiton
+   */
+  double estimateOptimalENCp(double ileak);
+
+
+    //electronics series noise polynomial coeffs (per gain)
+  std::vector<std::vector<double> > encsParam_;
+
+  //ADC pulses (per gain)
+  std::vector<hgcroc::HGCROCPreampPulseShape_t> preampPulses_;
+
+  //lsb and dynamic range (per gain)
+  std::vector<double> lsbPerGain_, chargeAtFullScaleADCPerGain_;
 
 
 

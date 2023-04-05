@@ -10,12 +10,21 @@
 #include "CLHEP/Random/RandGaussQ.h"
 #include "CLHEP/Random/RandFlat.h"
 
-typedef std::array<float, 15> HGCROCSimHitData;
-typedef std::array<bool, 15> HGCROCSimHitFlags;
-typedef std::array<float, 6> HGCROCPreampPulseShape;
-typedef std::array<float, 2> HGCROCTOAJitterParam;
-typedef std::array<float, 3> HGCROCTDCChargeDrainParam;
-typedef std::array<float, 2> HGCROCTDCChargeDrainJitterParam;
+typedef std::array<float, 15> HGCROCSimHitData_t;
+typedef std::array<bool, 15> HGCROCSimHitFlags_t;
+typedef std::array<float, 6> HGCROCPreampPulseShape_t;
+typedef std::array<float, 2> HGCROCTOAJitterParam_t;
+typedef std::array<float, 3> HGCROCTDCChargeDrainParam_t;
+typedef std::array<float, 2> HGCROCTDCChargeDrainJitterParam_t;
+
+
+enum HGCROCDynamicRange { q80fC, q160fC, q320fC, CUSTOM, NULLGAIN };
+enum HGCROCOperationMode { DEFAULT, CHARACTERIZATION, TRIVIAL, NULLOP };
+struct HGCROCConfiguration {
+  HGCROCConfiguration() : gain(HGCROCDynamicRange::NULLGAIN), opMode(HGCROCOperationMode::NULLOP) {}
+  HGCROCDynamicRange gain;
+  HGCROCOperationMode opMode;
+};
 
 
 /**
@@ -26,13 +35,12 @@ template <class DFr>
 class HGCROCEmulator {
 public:
 
-  enum HGCROCOperationMode { DEFAULT, CHARACTERIZATION, TRIVIAL };
-
   /**
      @short CTOR
    */
+  HGCROCEmulator() { setDefaults(); }
   HGCROCEmulator(const edm::ParameterSet& ps);
-
+  
   /**
      @short 
      runs the emulation according to the operation mode
@@ -44,12 +52,12 @@ public:
      itbx - the in-time index to use
    */
   inline void run(DFr& dataFrame,
-                  HGCROCSimHitData& chargeColl,
-                  HGCROCSimHitData& toaColl,
+                  HGCROCSimHitData_t& chargeColl,
+                  HGCROCSimHitData_t& toaColl,
                   CLHEP::HepRandomEngine* engine,
                   bool addNoise,
                   short itbx = 9) {
-    if (opMode_ == TRIVIAL)
+    if (cfg_.opMode == TRIVIAL)
       digitizeTrivial(dataFrame, chargeColl, toaColl, engine, addNoise, itbx);
     else
       digitize(dataFrame, chargeColl, toaColl, engine, addNoise, itbx);
@@ -65,7 +73,7 @@ public:
      addNoise - by default no noise is added
      itbx - the in-time index to use (9 by default)
    */
-  void digitizeTrivial(DFr& dataFrame, HGCROCSimHitData& chargeColl, HGCROCSimHitData& toaColl, CLHEP::HepRandomEngine* engine, bool addNoise=false,short itbx=9);
+  void digitizeTrivial(DFr& dataFrame, HGCROCSimHitData_t& chargeColl, HGCROCSimHitData_t& toaColl, CLHEP::HepRandomEngine* engine, bool addNoise=false,short itbx=9);
 
   /**
      @short runs the digitization routine to fill the dataframe
@@ -79,8 +87,8 @@ public:
      itbx - the in-time index to use (9 by default)
   */
   void digitize(DFr& dataFrame,
-                HGCROCSimHitData& chargeColl,
-                HGCROCSimHitData& toaColl,
+                HGCROCSimHitData_t& chargeColl,
+                HGCROCSimHitData_t& toaColl,
                 CLHEP::HepRandomEngine* engine,
                 bool addNoise=true,
                 short itbx=9);
@@ -88,33 +96,27 @@ public:
   /**
      @short returns the current charge estimations including leakage and busy state effects
    */
-  const HGCROCSimHitData &currentCharges() { return newCharge_; }
+  const HGCROCSimHitData_t &currentCharges() { return newCharge_; }
 
   /**
      @short returns the current TOT integration time estimations
    */
-  const HGCROCSimHitData &currentIntegrationTimes() { return integTime_; }
+  const HGCROCSimHitData_t &currentIntegrationTimes() { return integTime_; }
 
   /**
      @short returns the generated noise vector
   */
-  const HGCROCSimHitData &currentNoise() { return noiseCharge_; }
-  
-
-  /**
-     @short operation mode
-   */
-  HGCROCOperationMode opMode() const { return opMode_; }
+  const HGCROCSimHitData_t &currentNoise() { return noiseCharge_; }
   
   /**
      @short returns least-significant bit of the ADC
    */
-  float adcLSB() const { return adcLSB_; }
+  float adcLSB() { return adcLSB_[cfg_.gain]; }
  
   /**
      @short returns full scale charge (dyn. range) of the ADC
   */
-  float adcFSC() const { return adcFSC_; }
+  float adcFSC() { return adcFSC_[cfg_.gain]; }
 
   /**
      @short return number of bits in the ADC
@@ -129,7 +131,7 @@ public:
   /**
      @short returns pulse shape leakage to neighboring bunches
    */
-  HGCROCPreampPulseShape adcPulse() const { return adcPulse_; }
+  HGCROCPreampPulseShape_t adcPulse() { return adcPulse_[cfg_.gain]; }
 
   /**
      @short returns least-significant bit of the TDC used for time-of-arrival measurement
@@ -144,7 +146,7 @@ public:
   /**
      @short charge onset to trigger the measurement of time-of-arrival
    */
-  float toaOnset() const { return toaOnset_; }
+  float toaOnset() { return toaOnset_[cfg_.gain]; }
 
   /**
      @short number of bits of the TDC used to measure time-of-arrival
@@ -179,37 +181,32 @@ public:
   /**
      @short returns charge onset to trigger time-over-threshold
    */
-  float totOnset() const { return totOnset_; }
+  float totOnset() { return totOnset_[cfg_.gain]; }
 
   /**
      @short returns the parameters used to model the charge drain after the time-over-threshold period
    */
-  HGCROCTDCChargeDrainParam totChargeDrainParam() const { return totChargeDrainParam_; }
+  HGCROCTDCChargeDrainParam_t totChargeDrainParam() const { return totChargeDrainParam_; }
 
   /**
      @short returns the parameters use to introduce a jitter in the charge drain after time-over-threshold
    */
-  HGCROCTDCChargeDrainJitterParam totChargeDrainJitterParam() const {  return totChargeDrainJitterParam_; }
+  HGCROCTDCChargeDrainJitterParam_t totChargeDrainJitterParam() const {  return totChargeDrainJitterParam_; }
+
+
+  /**
+     @short configures the ADC parameters which will be set on the CUSTOM dynamic range
+     fsc = dynamical range
+     shape = pre-amp pulse shape
+   */
+  void configureADC(float fsc, HGCROCPreampPulseShape_t shape);
   
   /**
-     @short configure operation mode
-  */
-  void configureMode(HGCROCOperationMode mode);
-
-  /**
-     @short configure ADC
-     fsc = full scale charge (triggers recomputation of the LSB)
-     shape = pulse shape to use
-  */
-  void configureADC(float fsc, HGCROCPreampPulseShape shape);
-
-  /**
      @short configure time of arrival
-     fsc = dynamical range (ns) (triggers recomputation of the LSB)
-     onset = charge after which toa is computed
+     fsc = dynamical range (ns) (triggers recomputation of the LSB)     
      toa{jitter,clkoff} = {stochastic, constant} for the smearing of the toa
   */
-  void configureTOA(float fsc, float onset, float toajitter, float toaclkoff);
+  void configureTOA(float fsc, float toajitter, float toaclkoff);
 
   /**
      @short configures the noise parameters
@@ -223,12 +220,12 @@ public:
      @short configure time over threshold
      fsc = dynamical range (ns) (triggers recomputation of the LSB)
      chargeDrainParam = parameters to use when evaluating how many bunches TOT is busy
+     chargeDrainJitterParam = used to randomize the charge drain
      bxUndershoot = additional bunches where the system undershoots the charge
   */
   void configureTOT(float fsc,
-                    float onset,
-                    HGCROCTDCChargeDrainParam chargeDrainParam,
-                    HGCROCTDCChargeDrainJitterParam chargeDrainJitterParam,
+                    HGCROCTDCChargeDrainParam_t chargeDrainParam,
+                    HGCROCTDCChargeDrainJitterParam_t chargeDrainJitterParam,
                     short bxUndershoot);
 
   /**
@@ -237,26 +234,41 @@ public:
   int16_t getChargeIntegrationTime(float charge, CLHEP::HepRandomEngine* engine = nullptr);
   
   /**
-     @short getter for configuration
-   */
-  edm::ParameterSet cfg() const { return myCfg_; }
-
-  /**
      @short evaluates the expected parallel component to the noise for a given gain and sensor capacitance
    */
-  float getENCs(float gain,float cap);
+  float getENCs(HGCROCDynamicRange gain,float cap);
 
   /**
      @short evalutes the expected series component to the noise for a given gain and leakage current
    */
-  float getENCp(float gain,float ileak);
+  float getENCp(HGCROCDynamicRange gain,float ileak);
   
+   /**
+      @short proposes most adequate configuration given MIP charge expected
+   */
+  HGCROCConfiguration proposeConfig(float S,float maxADCtarget=16);
+
+  /**
+     @short configuration setters / getters
+   */
+  inline void setConfiguration(HGCROCConfiguration cfg) { cfg_=cfg; }
+  inline void setConfiguration(HGCROCDynamicRange gain,HGCROCOperationMode mode) { cfg_.gain=gain; cfg_.opMode=mode; }
+  inline void setOperationMode(HGCROCOperationMode mode) { cfg_.opMode=mode; }
+  inline HGCROCConfiguration currentConfiguration() const { return cfg_; }
+  inline HGCROCDynamicRange currentDynamicRange() const { return cfg_.gain; }
+  inline HGCROCOperationMode currentOpMode() const { return cfg_.opMode; }
+
   /**
      @short DTOR
    */
   ~HGCROCEmulator() {}
 
 private:
+
+  /**
+     @short set the default values
+   */
+  void setDefaults(); 
 
   /**
      @short generates the noise bunch-by-bunch
@@ -274,8 +286,8 @@ private:
      @short a simple implementation of the time of arrival based on a smearing of the MC truth
      @params the array of collected charge, time of arrival simulated, the random number generator and the index for the in-time-bunch
   */
-  float measureToA(HGCROCSimHitData& chargeColl,
-                   HGCROCSimHitData& toaColl,
+  float measureToA(HGCROCSimHitData_t& chargeColl,
+                   HGCROCSimHitData_t& toaColl,
                    CLHEP::HepRandomEngine* engine,
                    short itbx);
 
@@ -284,19 +296,19 @@ private:
      The algorithm is iterative and integration time needs to be updated depending on the charge which is accumulated while in ToT mode or which leaks from previous bunches
      The cache for newCharge_ will be updated with the final measurements
    */
-  void measureChargeWithTOT(HGCROCSimHitData& chargeColl);
+  void measureChargeWithTOT(HGCROCSimHitData_t& chargeColl);
   
   /**
      @short convolve the pulse shape with the charge accumulated in each bunch
      The cache for newCharge_ will be updated with the final measurements
    */
-  void measureChargeWithADCPreamp(HGCROCSimHitData& chargeColl);
+  void measureChargeWithADCPreamp(HGCROCSimHitData_t& chargeColl);
 
   /**
      @short estimates leakage to the bunch crossing it using the configured pre-amp charge
      All busy/tot flags which have been set will be used to skip bunch crossings in those states
    */
-  float estimateLeakage(HGCROCSimHitData& chargeColl, size_t it);
+  float estimateLeakage(HGCROCSimHitData_t& chargeColl, size_t it);
   
   /**
      @short resets the caches used in the digitization
@@ -305,19 +317,19 @@ private:
   void resetCaches(CLHEP::HepRandomEngine* engine);
 
   //configuration parameters
-  HGCROCOperationMode opMode_;
+  HGCROCConfiguration cfg_;
   uint16_t adcNbits_, adcMax_, toaNbits_, toaMax_, totNbits_, totMax_, totBxUndershoot_;
-  float adcLSB_, adcFSC_, toaLSB_, toaFSC_, toaOnset_, totLSB_, totFSC_, totOnset_;
+  float toaLSB_, toaFSC_, totLSB_, totFSC_;
+  std::map<HGCROCDynamicRange,float> adcLSB_, adcFSC_, totOnset_, toaOnset_;
+  std::map<HGCROCDynamicRange,HGCROCPreampPulseShape_t> adcPulse_;
   float pedestal_, noiseJitter_, commonNoise_;
   float toaJitter_, toaClockOffset_;
-  HGCROCPreampPulseShape adcPulse_;
-  HGCROCTDCChargeDrainParam totChargeDrainParam_;
-  HGCROCTDCChargeDrainJitterParam totChargeDrainJitterParam_;
-  edm::ParameterSet myCfg_;
+  HGCROCTDCChargeDrainParam_t totChargeDrainParam_;
+  HGCROCTDCChargeDrainJitterParam_t totChargeDrainJitterParam_;
 
   //caches
-  HGCROCSimHitFlags busyFlags_, totFlags_, toaFlags_;
-  HGCROCSimHitData noiseCharge_, newCharge_,integTime_;
+  HGCROCSimHitFlags_t busyFlags_, totFlags_, toaFlags_;
+  HGCROCSimHitData_t noiseCharge_, newCharge_,integTime_;
 };
 
 #endif
