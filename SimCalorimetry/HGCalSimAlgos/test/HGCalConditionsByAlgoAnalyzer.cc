@@ -14,7 +14,7 @@
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 
 #include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConditionsByAlgoWrapper.h"
-#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConfigurationByAlgoWrapper.h"
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalSiSectionConfiguratorsByAlgo.h"
 
 #include <TH1F.h>
 #include <TH2F.h>
@@ -50,7 +50,7 @@ private:
 
   HGCSiConditionsByAlgoWrapper hgceeConds_, hgchesiConds_;
   HGCSiPMonTileConditionsByAlgoWrapper hgcsciConds_;
-
+  
   typedef std::pair<DetId::Detector,unsigned int> LayerKey_t;
   std::map<LayerKey_t,std::map<std::string, TH1F *> > histos1D_;
   //std::map<std::string, TH2F *> histos2D_;
@@ -137,6 +137,7 @@ void HGCalConditionsByAlgoAnalyzer::bookHistograms(DetId::Detector d,unsigned in
     
     if(d != DetId::HGCalHSc) {
       histos1D_[key]["cce"]   = fs_->make<TH1F>(baseName + "cce",   baseTitle + "<CCE>",             xbins, xmin, xmax);
+      histos1D_[key]["mip"]   = fs_->make<TH1F>(baseName + "mip",   baseTitle + "<MIP> [fC]",             xbins, xmin, xmax);
       histos1D_[key]["ileak"] = fs_->make<TH1F>(baseName + "ileak", baseTitle + "<I_{leak}> [#muA]", xbins, xmin, xmax);
       //layerGain_[key] = fs_->make<TH1F>(baseName + "gain", baseTitle + "<Gain>", xbins, xmin, xmax);
       //layerMipPeak_[key] = fs_->make<TH1F>(baseName + "mippeak", layerTitle + "<MIP peak> [ADC]", xbins, xmin, xmax);
@@ -180,6 +181,7 @@ void HGCalConditionsByAlgoAnalyzer::fillSiHistograms(DetId::Detector &det, HGCSi
   
   //loop over the available DetIds
   const std::vector<DetId> &detIdVec = conds.geom()->getValidDetIds();
+  HGCalGeomSiSectionConfigurationByAlgo hgcsiConf;
   for (const auto &cellId : detIdVec) {
 
     double r = conds.computeRadius(cellId);
@@ -201,8 +203,15 @@ void HGCalConditionsByAlgoAnalyzer::fillSiHistograms(DetId::Detector &det, HGCSi
     histos1D_[key]["ncells"]->Fill(r);
     histos1D_[key]["fluence"]->Fill(r,condsFromAlgo.fluence);
     histos1D_[key]["cce"]->Fill(r,condsFromAlgo.core.cce);
+    histos1D_[key]["mip"]->Fill(r,condsFromAlgo.mipEqfC);
     histos1D_[key]["ileak"]->Fill(r,condsFromAlgo.core.ileak);
+
+    hgcsiConf.addConfigurableToEntity(id,condsFromAlgo);
   }
+
+  //determine best configuration
+  hgcsiConf.findFEConfigurationByAlgo();
+
 }
 
 
@@ -339,7 +348,7 @@ void HGCalConditionsByAlgoAnalyzer::fillSiHistograms(DetId::Detector &det, HGCSi
 void HGCalConditionsByAlgoAnalyzer::endJob() {
   
   std::vector<std::string> hnames={"fluence","dose",
-                                   "cce","ileak","lysf","darkpx"};
+                                   "cce","mip","ileak","lysf","darkpx"};
   for(auto lk : histos1D_) {
 
     //the numerator needs to be present

@@ -1,9 +1,7 @@
-#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalConfigurationByAlgoWrapper.h"
-#include "DataFormats/HGCalDigi/interface/HGCalDigiCollections.h"
+#include "SimCalorimetry/HGCalSimAlgos/interface/HGCalSiSectionConfiguratorsByAlgo.h"
 
 //
-template<>
-uint32_t HGCalSiGeoConfigurationByAlgo::toConfigurableKey(HGCSiliconDetId &d) {
+uint32_t HGCalGeomSiSectionConfigurationByAlgo::toConfigurableKey(HGCSiliconDetId &d) {
 
   //reset cell (u,v) in detId and return new value
   HGCSiliconDetId modId(d.det(),d.zside(),d.type(),d.layer(),d.waferU(),d.waferV(),0,0);

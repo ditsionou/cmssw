@@ -485,8 +485,8 @@ HGCROCConfiguration HGCROCEmulator<DFr>::proposeConfig(float S,float maxADCtarge
   }
 
   HGCROCConfiguration cfg;
-  cfg_.gain=gain;
-  cfg_.opMode = HGCROCOperationMode::DEFAULT;
+  cfg.gain=gain;
+  cfg.opMode = HGCROCOperationMode::DEFAULT;
 
   return cfg;
 }

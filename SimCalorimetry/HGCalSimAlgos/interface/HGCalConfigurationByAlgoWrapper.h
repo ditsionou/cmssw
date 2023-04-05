@@ -19,11 +19,11 @@
    <Conditions, DetId> or <Conditions, LogicalId>
    The baseline configuration will be encoded in a struct (HGCROCConfiguration) containing the gain, a ZS threshold, the leakage to the next bunch and the noise (total, common mode and series+parallel contributions to total)
 */
+enum HGCalConfigurationAlgos { BYMAJORITY, BYMAXGAIN };
+
 template <class C, class D>
 class HGCalConfigurationByAlgoWrapper {
 public:
-
-  enum HGCalConfigurationAlgos { BYMAJORITY, BYMAXGAIN };
   
   HGCalConfigurationByAlgoWrapper() { }
   
@@ -60,7 +60,48 @@ public:
                    BYMAXGAIN - the channel which requires maximal gain (min dynamical range) is used
      @param resetAfter - can be used to avoid resetting the map of configurables
    */
-  void findFEConfigurationByAlgo(int algo,bool resetAfter=true);
+  inline void findFEConfigurationByAlgo(int algo=HGCalConfigurationAlgos::BYMAXGAIN,
+                                        bool resetAfter=true) {
+    confCache_.clear();
+    HGCROCEmulator<HGCROCChannelDataFrameSpec> roc;
+    
+    //loop over the current map of configurables
+    for(auto it : configurableEntities_) {
+      
+      auto key = it.first;
+      auto condColl = it.second;
+      
+      //for each sensor get the best configuration from the ROC based on the expected mip equivalent position
+      std::map<HGCROCDynamicRange,int> counts;
+      for(auto cond : condColl) {
+        float S(cond.mipEqfC);
+        HGCROCDynamicRange gain = roc.proposeConfig(S).gain;
+        if(counts.count(gain)==0) counts[gain]=0;
+        counts[gain]+=1;
+      }
+      
+      HGCROCConfiguration cfg;
+      cfg.opMode=HGCROCOperationMode::DEFAULT;
+      cfg.gain=HGCROCDynamicRange::NULLGAIN;
+      
+      //the first entry corresponds to the max. gain possible
+      if(algo==HGCalConfigurationAlgos::BYMAXGAIN) {
+        cfg.gain=counts.begin()->first;
+      }
+      
+      //use the configuration preferred by the majority instead
+      else if(algo==HGCalConfigurationAlgos::BYMAJORITY){
+        using pair_type = decltype(counts)::value_type;
+        auto itr = std::max_element(counts.begin(),
+                                    counts.end(),
+                                    [](const pair_type a, const pair_type b) { return a.second < b.second; }
+                                    );      
+        cfg.gain=itr->first;      
+      }
+      
+      confCache_[key]=cfg;
+    }
+  }
 
   /**
      @short returns the configuration for a given identifier
@@ -76,12 +117,16 @@ public:
   /**
     @short fills configurations from file
   */
-  void fillConfigurationsFrom(std::string);
+  void fillConfigurationsFrom(std::string) {
+    //FIXME
+  }
 
   /**
     @short saves configurations to file
   */
-  void saveConfigurationsTo(std::string);
+  void saveConfigurationsTo(std::string) {
+    //FIXME
+  }
   
 private:
 
@@ -91,12 +136,5 @@ private:
   //cache of configurations associated by identifier
   std::map<uint32_t, HGCROCConfiguration> confCache_;
 };
-
-//define typedef for the different flavours of templated classes
-typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HGCSiliconDetId> HGCalSiGeoConfigurationByAlgo;
-//typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HGCalElectronicsId> HGCalSiLogConfigurationByAlgo;
-//typedef HGCalConfigurationByAlgoWrapper<HGCalSiConditionsByAlgo::SiCellOpCharacteristics,HFNoseDetId> HGCalHFNoseGeoConfigurationByAlgo;
-//typedef HGCalConfigurationByAlgoWrapper<HGCalSiPMonTileConditionsByAlgo::SiPMonTileCharacteristicsCore,HGCScintillatorDetId> HGCalSiPMonTileGeoConfigurationByAlgo;
-//typedef HGCalConfigurationByAlgoWrapper<HGCalSiPMonTileConditionsByAlgo::SiPMonTileCharacteristicsCore,HGCalElectronicsId> HGCalSiPMonTileLogConfigurationByAlgo;
 
 #endif
