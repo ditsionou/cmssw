@@ -43,7 +43,7 @@ public:
   /**
      @short set the charge collection parameters to use
   */
-  void setCceParam(HGCalSiSensorTypes_t &sensType,const std::vector<double> &pars) { 
+  void setCceParam(HGCalSiSensorTypes_t sensType,const std::vector<double> &pars) { 
     cceParam_[sensType]=pars; 
     if(sensType==HGCalSiSensorTypes_t::LD200) cceParam_[HGCalSiSensorTypes_t::HD200]=cceParam_[sensType];
   }

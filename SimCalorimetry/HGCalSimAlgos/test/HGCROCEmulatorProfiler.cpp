@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   float adcFSC(roc.adcFSC()), totFSC(roc.totFSC()), toaFSC(roc.toaFSC());
   //float toaOnset(roc.toaOnset()), totOnset(roc.totOnset());
   float toaLSB(roc.toaLSB());
-  HGCROCOperationMode opMode(roc.opMode());
+  HGCROCOperationMode opMode(roc.currentOpMode());
     
   //simulated data arrays
   HGCROCSimHitData_t chargeColl, chargeToA;

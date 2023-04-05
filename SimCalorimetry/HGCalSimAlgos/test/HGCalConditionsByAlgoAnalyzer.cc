@@ -91,12 +91,16 @@ HGCalConditionsByAlgoAnalyzer::HGCalConditionsByAlgoAnalyzer(const edm::Paramete
   hgceeConds_.getConditionsAlgo().setDoseMap(doseMapURL,confAlgo[0]);
   hgceeConds_.getConditionsAlgo().setFluenceScaleFactor(scaleByDoseFactor);
   hgceeConds_.getConditionsAlgo().setIleakParam(ileakParam);
-  hgceeConds_.getConditionsAlgo().setCceParam(cceParamFine, cceParamThin, cceParamThick);
+  hgceeConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::HD120,cceParamFine);
+  hgceeConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::LD200,cceParamThin);
+  hgceeConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::LD300,cceParamThick);
 
   hgchesiConds_.getConditionsAlgo().setDoseMap(doseMapURL,confAlgo[1]);
   hgchesiConds_.getConditionsAlgo().setFluenceScaleFactor(scaleByDoseFactor);
   hgchesiConds_.getConditionsAlgo().setIleakParam(ileakParam);
-  hgchesiConds_.getConditionsAlgo().setCceParam(cceParamFine, cceParamThin, cceParamThick);
+  hgchesiConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::HD120,cceParamFine);
+  hgchesiConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::LD200,cceParamThin);
+  hgchesiConds_.getConditionsAlgo().setCceParam(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t::LD300,cceParamThick);
 
   //conditions for the SiPM-on-Tile section
   double refIdark = iConfig.getParameter<double>("referenceIdark");
@@ -183,10 +187,10 @@ void HGCalConditionsByAlgoAnalyzer::fillSiHistograms(DetId::Detector &det, HGCSi
     //get the conditions either from cache or recomputing again from scratch
     HGCSiliconDetId id(cellId.rawId());
     int layer = id.layer();
-    unsigned int cellThick = id.type();
+    HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t sensType=(HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t)id.type();
     
     HGCalSiConditionsByAlgo::SiCellOpCharacteristicsCore condsFromCache = conds.getConditionsForDetId(cellId);
-    HGCalSiConditionsByAlgo::SiCellOpCharacteristics condsFromAlgo  = conds.getConditionsAlgo().getConditionsByAlgo(det,layer,r,cellThick);
+    HGCalSiConditionsByAlgo::SiCellOpCharacteristics condsFromAlgo  = conds.getConditionsAlgo().getConditionsByAlgo(det,layer,r,sensType);
 
     //assert both values match
     assert(condsFromCache.cce == condsFromAlgo.core.cce);
