@@ -2,3 +2,5 @@
 #include "DataFormats/Portable/interface/Product.h"
 #include "DataFormats/PortableTestObjects/interface/TestHostCollection.h"
 #include "DataFormats/PortableTestObjects/interface/TestSoA.h"
+#include "DataFormats/PortableTestObjects/interface/TestHostRecHitCollection.h"
+#include "DataFormats/PortableTestObjects/interface/TestRecHitSoA.h"
