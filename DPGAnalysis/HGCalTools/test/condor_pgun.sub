@@ -1,0 +1,38 @@
+rel=13_1_0_pre4
+my_cmssw   = /afs/cern.ch/user/p/psilva/work/HGCal/TimingStudies/CMSSW_$(rel)/src
+executable = runLocalGeneration.sh
+my_eosdir  = /eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/
+arguments  = -c $(my_cmssw) -n 1000 -m DPGAnalysis/HGCalTools/python/Single$(part)Gun_eta$(eta)_cfi.py -o $(my_eosdir)/Single$(part)Gun_eta$(eta)_$(rel)_D99_$(tag)/Events_$(ProcId).root -a $(aging)
+output     = $(ClusterId).out
+error      = $(ClusterId).err
+log        = $(ClusterId).log
++JobFlavour = "tomorrow"
+MY.WantOS = "el8"
+
+queue 20 part,eta,tag,aging from (
+      K0L 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      K0L 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      K0L 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      K0L 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise      
+      K0L 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      K0L 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      K0L 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      K0L 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Photon 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Photon 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Photon 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Photon 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise      
+      Photon 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Photon 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Photon 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Photon 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Pion 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Pion 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Pion 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise
+      Pion 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setRealisticStartupNoise      
+      Pion 1p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Pion 2p0 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Pion 2p5 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+      Pion 2p8 startup SimCalorimetry/HGCalSimProducers/hgcalDigitizer_cfi.HGCal_setEndOfLifeNoise
+) 
+
