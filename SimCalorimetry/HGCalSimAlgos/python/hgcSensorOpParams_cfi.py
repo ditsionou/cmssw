@@ -1,17 +1,17 @@
 import FWCore.ParameterSet.Config as cms
 
-def hgcSiSensorIleak(version):
+def hgcSiSensorIleakRadDam(version):
 
     """ 
-    this method returns different parameterizations of the leakage current for different versions
-    {600V,800V}_annealing - 2023 parameterizations for operations at -30C, 600V or 800V and different annealing times
+    this method returns radiation damange constants of the leakage current for different versions
+    {600V,800V}_annealing. The units are [A/m]
     if version is unknown a ValueError exception is raised
     """
     
     if version=='600V_90m':
-        return [1.0,-42.715]
+        return 2.34e-19
     elif version=='800V_90m':
-        return [1.0,-42.509]
+        return 3.21e-19
     
     raise ValueError('version={} is unknown to retrieve Ileak parameterization for HGC Si sensors'.format(version))
 

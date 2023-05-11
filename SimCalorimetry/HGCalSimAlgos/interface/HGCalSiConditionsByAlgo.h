@@ -36,9 +36,9 @@ public:
   ~HGCalSiConditionsByAlgo(){};
 
   /**
-     @short set the ileak parameters to use
+     @short set the ileak parameters to use, internally the logarithmic value is stored
   */
-  void setIleakParam(const std::vector<double> &pars) { ileakParam_ = pars; }
+  void setIleakParam(const double &alpha) { lnAlpha_ = vdt::fast_log(alpha); }
 
   /**
      @short set the charge collection parameters to use
@@ -96,12 +96,37 @@ public:
                                                      int &layer,
                                                      double &radius);
 
+  /**
+     @short alternative when fluence is know already
+   */
+  HGCalSiConditionsByAlgo::SiCellOpCharacteristics getSiCellOpCharacteristics(double &fluence,
+                                                                              double &cellVol,
+                                                                              double &capacitance,
+                                                                              double &mipEqfC,
+                                                                              std::vector<double> &cceParam);
+  /*
+    @short alternative when fluence and sensor type are known
+  */
+  HGCalSiConditionsByAlgo::SiCellOpCharacteristics getSiCellOpCharacteristics(double &fluence, HGCalSiSensorTypes_t & sens);
+
+  
   std::map<HGCalSiSensorTypes_t,double> &getMipEqfC() { return mipEqfC_; }
   std::map<HGCalSiSensorTypes_t,double> &getCellCapacitance() { return cellCapacitance_; }
   std::map<HGCalSiSensorTypes_t,double> &getCellVolume() { return cellVolume_; }
   std::map<HGCalSiSensorTypes_t,std::vector<double> > &getCCEParam() { return cceParam_; }
-  std::vector<double> &getIleakParam() { return ileakParam_; }
+  double getIleakRadDam() { return vdt::fast_exp(lnAlpha_); }
 
+  /**
+     @short returns expected leakage current at a given fluence (lnfluence=log(f)) for a cell of volume cellVol
+     using I/V = alpha * fluence it's returned as I = V * exp( lnAlpha_ + lnfluence + lnUnitToMicro_ ) in units of [microA]
+   */
+  float evaluateLeakageCurrent(float cellVol, float lnfluence);
+
+  /**
+     @short returns the expected charge collection efficiency at fluence f (lnfluence=log(f))
+   */
+  float evaluateCCE(float fluence,float lnfluence,std::vector<double> &cceParam);
+  
 private:
 
   //flags used to disable specific components of the Si operation parameter
@@ -112,14 +137,14 @@ private:
   std::map<HGCalSiSensorTypes_t,std::vector<double> > cceParam_;
 
   //leakage current/volume vs fluence
-  std::vector<double> ileakParam_;
+  double lnAlpha_;
 
   //electron charge in fC
   const double qe2fc_ = 1.60217646E-4;
 
   //conversions
   const double unitToMicro_ = 1.e6;
-  const double unitToMicroLog_ = log(unitToMicro_);
+  const double lnUnitToMicro_ = log(unitToMicro_);
 };
 
 #endif

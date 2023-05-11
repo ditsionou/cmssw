@@ -29,20 +29,40 @@
 
 using namespace std;
 
-//
-// class declaration
-//
+/**
+ @class HGCalConditionsByAlgoAnalyzer
+ @short an analyzer plugin to make basic histograms on the conditions/configurations to apply to sensors/front-end emulation
+*/
 class HGCalConditionsByAlgoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+
 public:
+  
   explicit HGCalConditionsByAlgoAnalyzer(const edm::ParameterSet &);
   ~HGCalConditionsByAlgoAnalyzer() override;
 
 private:
+
   void beginJob() override {}
   void analyze(const edm::Event &, const edm::EventSetup &) override;
-  void endJob() override;
-  void bookHistograms(DetId::Detector d,unsigned int nlay,float xmin, float xmax, int xbins);
+
+  /**
+     @short this function takes care of profiling the Si parameterizations as function of the fluence
+   */
+  void profileSiParams();
+
+  /**
+     @short takes care of filling the geometry-dependent histograms
+   */
   void fillSiHistograms(DetId::Detector &d, HGCSiConditionsByAlgoWrapper &conds);
+
+  /**
+     @short books all the histograms needed for the analysis
+   */
+  void bookHistograms(DetId::Detector d,unsigned int nlay,float xmin, float xmax, int xbins);
+  void bookProfileHistograms();
+
+
+  void endJob() override;
   
   // ----------member data ---------------------------
   const edm::ESGetToken<CaloGeometry, CaloGeometryRecord> tokGeom_;
@@ -53,16 +73,6 @@ private:
   
   typedef std::pair<DetId::Detector,unsigned int> LayerKey_t;
   std::map<LayerKey_t,std::map<std::string, TH1F *> > histos1D_;
-  //std::map<std::string, TH2F *> histos2D_;
-  
-  /*
-  std::map<std::pair<DetId::Detector, int>, TH1F *> layerN_, layerCCE_, layerNoise_, layerIleak_, layerSN_, layerF_, layerGain_, layerMipPeak_;
-  std::map<DetId::Detector, TH2F *> detN_, detCCE_, detNoise_, detIleak_, detSN_, detF_, detGain_, detMipPeak_;
-  std::map<std::pair<DetId::Detector, int>, TProfile *> detCCEVsFluence_;
-
-  int aimMIPtoADC_;
-  bool ignoreGainSettings_;
-  */
   
   const int plotMargin_ = 20;
 };
@@ -78,8 +88,8 @@ HGCalConditionsByAlgoAnalyzer::HGCalConditionsByAlgoAnalyzer(const edm::Paramete
   double scaleByDoseFactor(iConfig.getParameter<double>("scaleByDoseFactor"));
 
   //conditions for the Si sections
-  std::vector<double> ileakParam(
-      iConfig.getParameter<edm::ParameterSet>("ileakParam").template getParameter<std::vector<double>>("ileakParam"));
+  double ileakParam(
+      iConfig.getParameter<edm::ParameterSet>("ileakParam").template getParameter<double>("ileakParam"));
   std::vector<double> cceParamFine(
       iConfig.getParameter<edm::ParameterSet>("cceParams").template getParameter<std::vector<double>>("cceParamFine"));
   std::vector<double> cceParamThin(
@@ -144,14 +154,97 @@ void HGCalConditionsByAlgoAnalyzer::bookHistograms(DetId::Detector d,unsigned in
     }else{
       histos1D_[key]["dose"]   = fs_->make<TH1F>(baseName + "dose",   baseTitle + "<Dose> [kRad]", xbins, xmin, xmax);
     }
-
   }
+}
 
+//
+void HGCalConditionsByAlgoAnalyzer::bookProfileHistograms() {
+  
+  float logfmin(13),logfmax(16.5);
+  const int nfbins(200);
+  Float_t fedges[nfbins+1]; 
+  for(int i=0; i<=nfbins; i++) fedges[i]=pow(10,logfmin+(logfmax-logfmin)*i/nfbins);
+
+  DetId::Detector dummy=(DetId::Detector)0;
+  for(unsigned int sens=0; sens<4; sens++){
+
+    TString baseName(Form("sensor%d", sens));
+
+    TString baseTitle("HD 120#mum");
+    if(sens==1) baseTitle = "LD 200#mum";
+    if(sens==2) baseTitle = "LD 300#mum";
+    if(sens==3) baseTitle = "HD 200#mum";
+    
+    LayerKey_t key(dummy,sens);
+    histos1D_[key]["cce"] =fs_->make<TH1F>(baseName+"ccevsfluence", baseTitle + ";F [n_{eq}/cm^{2}];CCE",nfbins, fedges);
+    histos1D_[key]["ileak"] =fs_->make<TH1F>(baseName+"ileakvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];I_{leak} [#muA]",nfbins, fedges);
+    histos1D_[key]["mip"] =fs_->make<TH1F>(baseName+"mipvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];MIP_{eq} [fC]",nfbins, fedges);
+    histos1D_[key]["gain"] =fs_->make<TH1F>(baseName+"gainvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];Dynamic range [fC]",nfbins, fedges);
+    histos1D_[key]["encs"] =fs_->make<TH1F>(baseName+"encsvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];ENC_{s} [fC]",nfbins, fedges);
+    histos1D_[key]["encp"] =fs_->make<TH1F>(baseName+"encpvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];ENC_{p} [fC]",nfbins, fedges);
+    histos1D_[key]["enc"] =fs_->make<TH1F>(baseName+"encvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];ENC [fC]",nfbins, fedges);
+    histos1D_[key]["son"] =fs_->make<TH1F>(baseName+"sonvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];S/N",nfbins, fedges);
+    histos1D_[key]["son_up"] =fs_->make<TH1F>(baseName+"son_upvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];S/N",nfbins, fedges);
+    histos1D_[key]["son_cm"] =fs_->make<TH1F>(baseName+"son_cmvsfluence", baseTitle + ";F [n_{eq}/cm^{2}];S/N",nfbins, fedges);
+  }
+  
+}
+
+//
+void HGCalConditionsByAlgoAnalyzer::profileSiParams() {
+
+  //prepare histos
+  bookProfileHistograms();
+  
+  //loop over different sensor types and plot the main quantities as function of the fluence
+  HGCROCEmulator<HGCROCChannelDataFrameSpec> roc;
+  DetId::Detector dummy = (DetId::Detector)0;
+  for(unsigned int i=0; i<4; i++){
+    LayerKey_t key(dummy,i);
+
+    //scan fluence based on the histogram axis
+    HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t sens = (HGCalSiConditionsByAlgo::HGCalSiSensorTypes_t)i;
+    for(int ibin=1; ibin<=histos1D_[key]["cce"]->GetNbinsX()+1; ibin++) {
+
+      double fluence = histos1D_[key]["cce"]->GetXaxis()->GetBinCenter(ibin);
+
+      //si cell characteristics
+      HGCalSiConditionsByAlgo::SiCellOpCharacteristics siop = hgceeConds_.getConditionsAlgo().getSiCellOpCharacteristics(fluence,sens);
+
+      //front-end characteristics
+      HGCROCConfiguration cfg=roc.proposeConfig(siop.mipEqfC);
+      roc.setConfiguration(cfg);
+      float encp=roc.getENCp(cfg.gain,siop.core.ileak);
+      float encs=roc.getENCs(cfg.gain,siop.capacitance);
+      float enc=sqrt(pow(encs,2)+pow(encp,2));
+      float komega=1.2;  //enhancement from Omega measurements
+      float enc_up=sqrt(pow(komega*encs,2)+pow(encp,2));
+      float kcm=sqrt(1+1./2.);  //enhancement from CM subtraction with 2 channels
+      float enc_cm=sqrt(pow(kcm*komega*encs,2)+pow(encp,2));
+
+      //S/N
+      float son=siop.mipEqfC/enc;
+      float son_up=siop.mipEqfC/enc_up;
+      float son_cm=siop.mipEqfC/enc_cm;
+
+      //fill the histograms
+      histos1D_[key]["cce"]->SetBinContent(ibin,siop.core.cce);
+      histos1D_[key]["ileak"]->SetBinContent(ibin,siop.core.ileak);
+      histos1D_[key]["mip"]->SetBinContent(ibin,siop.mipEqfC);
+      histos1D_[key]["gain"]->SetBinContent(ibin,pow(2,int(cfg.gain))*80.);
+      histos1D_[key]["encs"]->SetBinContent(ibin,encs);
+      histos1D_[key]["encp"]->SetBinContent(ibin,encp);
+      histos1D_[key]["enc"]->SetBinContent(ibin,enc);
+      histos1D_[key]["son"]->SetBinContent(ibin,son);
+      histos1D_[key]["son_up"]->SetBinContent(ibin,son_up);
+      histos1D_[key]["son_cm"]->SetBinContent(ibin,son_cm);
+    }
+  }
 }
 
 //
 void HGCalConditionsByAlgoAnalyzer::analyze(const edm::Event &iEvent, const edm::EventSetup &es) {
-
+   
   //get geometry
   const auto &geom = es.getHandle(tokGeom_);
 
@@ -168,6 +261,9 @@ void HGCalConditionsByAlgoAnalyzer::analyze(const edm::Event &iEvent, const edm:
   //CE-H SiPM-on-Tile
   //hgcsciConds_.setGeometry(geom->getSubdetectorGeometry(DetId::HGCalHSc, ForwardSubdetector::ForwardEmpty));
   //fillSiPMonTileHistograms(det,hgcsciConds_);
+
+  //generic profile
+  profileSiParams();
 }
 
 //

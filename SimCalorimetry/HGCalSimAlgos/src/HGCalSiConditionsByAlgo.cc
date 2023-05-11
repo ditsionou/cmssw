@@ -77,7 +77,7 @@ HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiC
   if (ignoreFluence_) {
     siop.fluence = 0;
     siop.lnfluence = -1;
-    siop.core.ileak = exp(ileakParam_[1]) * cellVol * unitToMicro_;
+    siop.core.ileak = 0;
     siop.core.cce = 1;
   } else {
     
@@ -89,43 +89,68 @@ HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiC
 
     siop.lnfluence = getFluenceValue(subdet, layer, radius, true);
     siop.fluence = exp(siop.lnfluence);
-
-    double conv(log(cellVol) + unitToMicroLog_);
-    siop.core.ileak = exp(ileakParam_[0] * siop.lnfluence + ileakParam_[1] + conv);
+    siop.core.ileak = evaluateLeakageCurrent(cellVol,siop.lnfluence);
 
     //charge collection efficiency
-    if (ignoreCCE_) {
-      siop.core.cce = 1.0;
-    } else {
-      
-      float a=cceParam[0];
-      float b=cceParam[1];
-      siop.core.cce = a*siop.lnfluence+b;
-
-      //regularize near the extremities (if needed)
-      float x=siop.fluence;
-      float xm=TMath::Exp((95-b)/a);
-      float xp=TMath::Exp((5-b)/a);
-      if(x<xm) {
-        float m=50;
-        float tm=TMath::ErfInverse(1-(a/m)*TMath::Log(xm)-b/m);
-        float sigmam=-(2*m*xm)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tm,2));
-        float x0m=xm-sigmam*tm;
-        siop.core.cce = m*(1-TMath::Erf((x-x0m)/sigmam));
-      } else if(x>xp) {
-        float p=50;
-        float tp=TMath::ErfInverse(1-(a/p)*TMath::Log(xp)-b/p);
-        float sigmap=-(2*p*xp)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tp,2));
-        float x0p=xp-sigmap*tp;
-        siop.core.cce = p*(1-TMath::Erf((x-x0p)/sigmap));
-      }
-      
-      siop.core.cce = siop.core.cce/100.;
-    }
+    siop.core.cce = ignoreCCE_ ? 1.0 : evaluateCCE(siop.fluence,siop.lnfluence,cceParam);
 
     //apply CCE to the mip equivalent
     siop.mipEqfC = mipEqfC * siop.core.cce;
   }
 
   return siop;
+}
+
+//
+HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiCellOpCharacteristics(double &fluence,
+                                                                                                     double &cellVol,
+                                                                                                     double &capacitance,
+                                                                                                     double &mipEqfC,
+                                                                                                     std::vector<double> &cceParam) {
+  SiCellOpCharacteristics siop;  
+  siop.capacitance = capacitance;
+  siop.lnfluence = log(fluence);
+  siop.fluence = fluence;
+  siop.core.ileak = evaluateLeakageCurrent(cellVol,siop.lnfluence);
+  siop.core.cce = evaluateCCE(siop.fluence,siop.lnfluence,cceParam);
+  siop.mipEqfC = mipEqfC * siop.core.cce;
+  return siop;
+}
+
+//
+HGCalSiConditionsByAlgo::SiCellOpCharacteristics HGCalSiConditionsByAlgo::getSiCellOpCharacteristics(double &fluence,HGCalSiSensorTypes_t &sens) {
+  return getSiCellOpCharacteristics(fluence, cellVolume_[sens], cellCapacitance_[sens], mipEqfC_[sens], cceParam_[sens]);
+}
+
+//
+float HGCalSiConditionsByAlgo::evaluateLeakageCurrent(float cellvol, float lnfluence) {  
+  return cellvol*vdt::fast_exp(lnAlpha_ + lnfluence + lnUnitToMicro_);
+}
+
+//
+float HGCalSiConditionsByAlgo::evaluateCCE(float fluence,float lnfluence,std::vector<double> &cceParam) {
+  
+  double a=cceParam[0];
+  double b=cceParam[1];
+  double cce = a*lnfluence+b;
+
+  //regularize near the extremities (if needed)
+  double x=fluence;
+  double xm=TMath::Exp((95-b)/a);
+  double xp=TMath::Exp((5-b)/a);
+  if(x<xm) {
+    double m=50;
+    double tm=TMath::ErfInverse(1-(a/m)*TMath::Log(xm)-b/m);
+    double sigmam=-(2*m*xm)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tm,2));
+    double x0m=xm-sigmam*tm;
+    cce = m*(1-TMath::Erf((x-x0m)/sigmam));
+  } else if(x>xp) {
+    double p=50;
+    double tp=TMath::ErfInverse(1-(a/p)*TMath::Log(xp)-b/p);
+    double sigmap=-(2*p*xp)/(a*TMath::Sqrt(TMath::Pi()))*TMath::Exp(-pow(tp,2));
+    double x0p=xp-sigmap*tp;
+    cce = p*(1-TMath::Erf((x-x0p)/sigmap));
+  }
+  
+  return cce/100.;
 }

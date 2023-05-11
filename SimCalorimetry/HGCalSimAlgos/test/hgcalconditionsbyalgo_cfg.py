@@ -7,6 +7,7 @@ options.register ("doseMap", "SimCalorimetry/HGCalSimProducers/data/doseParams_3
 options.register ("geometry", "GeometryExtended2026D92Reco",  VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register ("voltage", 600, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register ("annealing", 90, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register ("fscale", 1.0, VarParsing.multiplicity.singleton, VarParsing.varType.float)
 options.parseArguments()
 
 from Configuration.Eras.Era_Phase2C11I13M9_cff import Phase2C11I13M9
@@ -20,13 +21,13 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 process.source = cms.Source("EmptySource")
 
-from SimCalorimetry.HGCalSimAlgos.hgcSensorOpParams_cfi import hgcSiSensorIleak,hgcSiSensorCCE 
+from SimCalorimetry.HGCalSimAlgos.hgcSensorOpParams_cfi import hgcSiSensorIleakRadDam,hgcSiSensorCCE 
 #from SimCalorimetry.HGCalSimProducers.hgcalDigitizer_cfi import HGCAL_ileakParam_toUse, HGCAL_cceParams_toUse
 
 
 ileakconds=f'{options.voltage}V_{options.annealing}m'
 HGCAL_ileakParam_toUse    = cms.PSet(
-    ileakParam = cms.vdouble( hgcSiSensorIleak(ileakconds))
+    ileakParam = cms.double( hgcSiSensorIleakRadDam(ileakconds) )
 )
 
 process.analyses=cms.Sequence()
@@ -38,11 +39,11 @@ for var in ['nom','up','dn']:
         cceParamThick = cms.vdouble(hgcSiSensorCCE(300,cceconds)),
     )
 
-    ana_name=f'conds_3iab_{var}'
+    ana_name=f'conds_{var}'
     setattr(process,
             ana_name,
             cms.EDAnalyzer("HGCalConditionsByAlgoAnalyzer",
-                           scaleByDoseFactor  = cms.double(1.),
+                           scaleByDoseFactor  = cms.double(options.fscale),
                            doseMap            = cms.string( options.doseMap ),
                            confAlgo           = cms.vuint32(0,0,0),
                            ileakParam         = HGCAL_ileakParam_toUse,
@@ -56,7 +57,7 @@ for var in ['nom','up','dn']:
     
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string(f"condsbyalgo_output_{options.geometry}_{options.voltage}_{options.annealing}.root") )
+                                   fileName = cms.string(f"condsbyalgo_output_{options.geometry}_{options.voltage}_{options.annealing}_{options.fscale:3.2f}.root") )
 
 process.p = cms.Path(process.analyses)
 

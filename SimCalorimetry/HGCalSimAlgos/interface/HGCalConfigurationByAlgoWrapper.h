@@ -61,7 +61,7 @@ public:
      @param resetAfter - can be used to avoid resetting the map of configurables
    */
   inline void findFEConfigurationByAlgo(int algo=HGCalConfigurationAlgos::BYMAXGAIN,
-                                        bool resetAfter=true) {
+                                        bool resetAfter=false) {
     confCache_.clear();
     HGCROCEmulator<HGCROCChannelDataFrameSpec> roc;
     
@@ -101,16 +101,19 @@ public:
       
       confCache_[key]=cfg;
     }
+
+    if(resetAfter) configurableEntities_.clear();
   }
 
   /**
      @short returns the configuration for a given identifier
      if not found returns a default config where the gain is HGCROCDynamicRange_t::NULL
    */
-  inline HGCROCConfiguration getConfigurationFor(const D &d) {
+  inline HGCROCConfiguration getConfigurationFor(D &d) {
     uint32_t key = toConfigurableKey(d);
-    auto it = confCache_.begin();
+    auto it = confCache_.find(key);
     if(it!=confCache_.end()) return it->second;
+    std::cout << "Can't find config for " << d << std::endl;
     return  HGCROCConfiguration();
   }
 
@@ -127,6 +130,7 @@ public:
   void saveConfigurationsTo(std::string) {
     //FIXME
   }
+
   
 private:
 
