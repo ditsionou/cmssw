@@ -43,8 +43,6 @@ options.parseArguments()
 
 process.load('EventFilter.HGCalRawToDigi.hgcalEmulatedSlinkRawData_cfi')
 process.load('EventFilter.HGCalRawToDigi.hgcalDigis_cfi')
-#process.load('Validation.HGCalValidation.hgcalEmulValidation_cfi')
-process.load('EventFilter.HGCalRawToDigi.hgcalEmulatorTest_cfi')  #FIXME
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 if options.debug:
