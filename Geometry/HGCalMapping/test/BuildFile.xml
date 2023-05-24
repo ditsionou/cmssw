@@ -1,4 +1,4 @@
 <bin file="HGCalMappingTest.cc" name="HGCalMappingTest">
-  <flags TEST_RUNNER_ARGS=" src/Geometry/HGCalMapping/data/channels_sipmontile.hgcal.txt src/Geometry/HGCalMapping/data/geometry_sipmontile.hgcal.txt src/Geometry/HGCalMapping/data/modulelocator.txt"/>
+  <flags TEST_RUNNER_ARGS=" 2000 Geometry/HGCalMapping/data/channels_sipmontile.hgcal.txt Geometry/HGCalMapping/data/modulelocator.txt"/>
   <use name="Geometry/HGCalMapping"/>
 </bin>

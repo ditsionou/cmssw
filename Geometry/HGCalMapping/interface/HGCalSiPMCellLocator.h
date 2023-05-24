@@ -17,7 +17,7 @@
 class HGCalCellLocator {
 
     struct HGCalSiPMCellChannel{
-        int sipmcell,plane,iring,iphi,trigch,trigsum;
+        int sipmcell,plane,iring,iphi,trigch,trigsum,modiring;
         std::string t;
     };
 
@@ -25,18 +25,23 @@ class HGCalCellLocator {
 
         HGCalCellLocator(){};
 
-        void buildLocatorFrom(std::string channelpath, std::string geometrypath);
+        void buildLocatorFrom(std::string channelpath);
 
         // // Cell location from ROC fields and Module location
         std::tuple<int,int,int> getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const;
 
+        // // Cell location (ring,iphi) from HGCalElectronicsId and Module location
+        std::tuple<int,int> getCellLocation(const HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const;
+
         // // DetId from ElectronicsId and Module location, including z-side
         DetId getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const;
+
+        // // Module location (layer, ring, iphi) from DetId
+        std::tuple<int,int,int> getModuleLocation(DetId& id) const;
 
     private:
         std::vector<HGCalSiPMCellChannel> cellColl_;
 
-        // SiPM channel number from sequence number and ROC fields
         int getSiPMchannel(int seq, int econderx, int halfrocch) const;
 };
 
