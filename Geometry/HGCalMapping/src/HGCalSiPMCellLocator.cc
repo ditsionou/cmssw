@@ -26,58 +26,6 @@ void HGCalCellLocator::buildLocatorFrom(std::string channelpath, std::string geo
   }
   file.close();
 
-  file.open(geometrypath.c_str());
-  int isSiPMidx(0), icassette(0);
-  std::string item;
-  if (file.is_open())
-  {
-    getline(file, line);
-    std::istringstream stream(line);
-
-    int i = 0;
-    while (stream >> item) {
-      if(item == "isSiPM"){
-          isSiPMidx=i;
-          break;
-      }
-      i++;
-    }
-    while(getline(file,line)) 
-    {
-      std::istringstream stream(line);
-      std::vector<std::string> arr((std::istream_iterator<std::string>(stream)), std::istream_iterator<std::string>());
-      if (atoi(arr[isSiPMidx].c_str()) == 1) {
-        HGCalSiPMCellType c;
-        c.modplane = atoi(arr[1].c_str());
-        c.modiring = atoi(arr[2].c_str());
-        c.modiphi = atoi(arr[3].c_str());
-        c.t = arr[4].c_str();
-
-        cellType_.push_back(c);
-      }
-    }
-  }
-  else
-  {
-    edm::Exception e(edm::errors::FileOpenError, "HGCalSiPMCellLocator::buildLocatorFrom : SiPM geometry mapping file can not be found.");
-    throw e;
-  }
-
-  file.close();
-}
-
-std::string HGCalCellLocator::getModuleType(int modplane, int modring, int modiphi) const
-{
-  int iphi = modiphi % 12;
-  auto _matchesByType = [modplane, modring, iphi](HGCalSiPMCellType c){
-    return c.modplane == modplane && c.modiring == modring && c.modiphi == iphi;
-  };
-  auto it = std::find_if(begin(cellType_), end(cellType_), _matchesByType);
-  if(it==cellType_.end()){
-    edm::Exception e(edm::errors::NotFound,"Failed to match cell type by module geometry");
-    throw e;
-  }
-  return it->t;
 }
 
 int HGCalCellLocator::getSiPMchannel(int seq, int econderx, int halfrocch) const
@@ -87,11 +35,10 @@ int HGCalCellLocator::getSiPMchannel(int seq, int econderx, int halfrocch) const
 
 std::tuple<int,int,int> HGCalCellLocator::getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const
 {
-  std::string type = getModuleType(layer, modiring, modiphi);
   int sipmcell = getSiPMchannel(seq, econderx, halfrocch);
 
-  auto _matchesByChannel = [sipmcell, type](HGCalSiPMCellChannel c){
-    return c.sipmcell == sipmcell && c.t == type;
+  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMCellChannel c){
+    return c.sipmcell == sipmcell && c.plane == layer && c.modiring == modiring;
   };
   auto it = std::find_if(begin(cellColl_), end(cellColl_), _matchesByChannel);
   if(it==cellColl_.end()){
@@ -103,11 +50,10 @@ std::tuple<int,int,int> HGCalCellLocator::getCellLocation(int seq, int econderx,
 
 DetId HGCalCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const
 {
-  std::string type = getModuleType(layer, modiring, modiphi);
   int sipmcell = getSiPMchannel(seq, (int)id.econdeRx(), (int)id.halfrocChannel());
 
-  auto _matchesByChannel = [sipmcell, type](HGCalSiPMCellChannel c){
-    return c.sipmcell == sipmcell && c.t == type;
+  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMCellChannel c){
+    return c.sipmcell == sipmcell && c.plane == layer && c.modiring == modiring;
   };
   auto it = std::find_if(begin(cellColl_), end(cellColl_), _matchesByChannel);
   if(it==cellColl_.end()){

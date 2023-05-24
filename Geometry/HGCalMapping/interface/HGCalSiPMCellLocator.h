@@ -21,11 +21,6 @@ class HGCalCellLocator {
         std::string t;
     };
 
-    struct HGCalSiPMCellType{
-        int modplane,modiring,modiphi;
-        std::string t;
-    };
-
     public:
 
         HGCalCellLocator(){};
@@ -40,10 +35,6 @@ class HGCalCellLocator {
 
     private:
         std::vector<HGCalSiPMCellChannel> cellColl_;
-        std::vector<HGCalSiPMCellType> cellType_;
-
-        // Module type from module location
-        std::string getModuleType(int layer, int modiring, int modiphi) const;
 
         // SiPM channel number from sequence number and ROC fields
         int getSiPMchannel(int seq, int econderx, int halfrocch) const;
