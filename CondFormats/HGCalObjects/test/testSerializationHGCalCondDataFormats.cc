@@ -7,14 +7,14 @@ int main()
   testSerialization<HGCalCondSerializableGenericConfig>();
 
   //si cell
-  testSerialization<HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo>();
-  testSerialization<std::vector<HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo>>();
+  testSerialization<HGCalSiCellChannelInfo>();
+  testSerialization<std::vector<HGCalSiCellChannelInfo>>();
   testSerialization<HGCalCondSerializableSiCellChannelInfo>();
   testSerialization<std::vector<HGCalCondSerializableSiCellChannelInfo>>();
 
   //sipm-on-tile cell
-  testSerialization<HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo>();
-  testSerialization<std::vector<HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo>>();
+  testSerialization<HGCalSiPMTileInfo>();
+  testSerialization<std::vector<HGCalSiPMTileInfo>>();
   testSerialization<HGCalCondSerializableSiPMTileInfo>();
   testSerialization<std::vector<HGCalCondSerializableSiPMTileInfo>>();
 

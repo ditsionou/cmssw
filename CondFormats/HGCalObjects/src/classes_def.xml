@@ -10,13 +10,13 @@
   <class name="HGCalCondSerializableSiCellChannelInfo" class_version="0">
     <field name="params_" mapping="blob"/>
   </class>
-  <class name="HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo"/>
-  <class name="std::vector<HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo>"/>
+  <class name="HGCalSiCellChannelInfo"/>
+  <class name="std::vector<HGCalSiCellChannelInfo>"/>
 
   <class name="HGCalCondSerializableSiPMTileInfo" class_version="0">
     <field name="params_" mapping="blob"/>
   </class>
-  <class name="HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo"/>
-  <class name="std::vector<HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo>"/>
+  <class name="HGCalSiPMTileInfo"/>
+  <class name="std::vector<HGCalSiPMTileInfo>"/>
 
 </lcgdict>

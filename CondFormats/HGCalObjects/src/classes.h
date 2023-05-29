@@ -7,12 +7,12 @@ namespace CondFormats_HGCalObjects {
   std::map<std::string, std::vector<int> > m_s_v_i;
   HGCalCondSerializableGenericConfig h_csgc();
   
-  HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo hscci;
-  std::vector<HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo> v_hscci;
+  HGCalSiCellChannelInfo hscci;
+  std::vector<HGCalSiCellChannelInfo> v_hscci;
   HGCalCondSerializableSiCellChannelInfo h_cscci();
 
-  HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo hsti;
-  std::vector<HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo> v_hsti;
+  HGCalSiPMTileInfo hsti;
+  std::vector<HGCalSiPMTileInfo> v_hsti;
   HGCalCondSerializableSiPMTileInfo h_csti();
   
 }  // namespace CondFormats_HGCalObjects
