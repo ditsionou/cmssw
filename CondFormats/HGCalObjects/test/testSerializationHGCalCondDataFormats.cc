@@ -18,5 +18,11 @@ int main()
   testSerialization<HGCalCondSerializableSiPMTileInfo>();
   testSerialization<std::vector<HGCalCondSerializableSiPMTileInfo>>();
 
+  //module info
+  testSerialization<HGCalModuleInfo>();
+  testSerialization<std::vector<HGCalModuleInfo>>();
+  testSerialization<HGCalCondSerializableModuleInfo>();
+  testSerialization<std::vector<HGCalCondSerializableModuleInfo>>();
+
   return 0;
 }

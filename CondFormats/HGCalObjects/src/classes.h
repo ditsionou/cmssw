@@ -14,5 +14,9 @@ namespace CondFormats_HGCalObjects {
   HGCalSiPMTileInfo hsti;
   std::vector<HGCalSiPMTileInfo> v_hsti;
   HGCalCondSerializableSiPMTileInfo h_csti();
-  
+
+  HGCalModuleInfo hmi;
+  std::vector<HGCalModuleInfo> v_hmi;
+  HGCalCondSerializableModuleInfo h_csmi();
+
 }  // namespace CondFormats_HGCalObjects
