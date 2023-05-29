@@ -9,8 +9,9 @@
    @short representation of a si-cell channel information read from a txt file or db
 */
 struct HGCalModuleInfo {
-  bool zside,isSiPM;
-  int plane, u, v, modtype;
+  bool zside,isSiPM,isHD;
+  int plane, u, v;
+  std::string modtype;
   int econdidx, captureblock, slink, captureblockidx, fedid;
   std::string DAQ;  
   COND_SERIALIZABLE;

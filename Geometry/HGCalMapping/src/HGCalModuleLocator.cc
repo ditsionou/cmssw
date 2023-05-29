@@ -16,7 +16,7 @@ void HGCalModuleLocator::buildLocatorFrom(std::string path,bool usefip)
   {
     std::istringstream stream(line);
     HGCalModuleInfo m;
-    stream >> m.plane >> m.u >> m.v >> m.isSiPM >> m.econdidx >> m.captureblock >> m.slink >> m.captureblockidx >> m.fedid >> m.DAQ;
+    stream >> m.plane >> m.u >> m.v >> m.isSiPM >> m.isHD >> m.modtype >> m.econdidx >> m.captureblock >> m.slink >> m.captureblockidx >> m.fedid >> m.DAQ >> m.zside;
     mod2loc_.addParameter(m);
   }
 }
