@@ -18,10 +18,10 @@ process.source = cms.Source('EmptyIOVSource',
     interval = cms.uint64(1)
 )
 
-process.load('CalibCalorimetry.HGCalPlugins.hgcconfigESSourceFromYAML_cfi')
-process.hgcconfigESSourceFromYAML.filename = '/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/labtest/module822/pedestal_run0.yaml'
+process.load('CalibCalorimetry.HGCalPlugins.hgCalConfigESSourceFromYAML_cfi')
+process.hgCalConfigESSourceFromYAML.filename = '/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/labtest/module822/pedestal_run0.yaml'
 process.analyzer = cms.EDAnalyzer("HGCalConfigESSourceFromYAMLAnalyzer",
-                                  label = cms.untracked.string(''))
+                                  label = cms.string(''))
 
 process.source = cms.Source('EmptySource')
 
