@@ -6,8 +6,8 @@
  *
  ****************************************************************************/
 
-#ifndef CondFormats_HGCalObjects_HGCalLabTestConditions_h
-#define CondFormats_HGCalObjects_HGCalLabTestConditions_h
+#ifndef CondFormats_HGCalObjects_HGCalCondSerializableGenericConfig_h
+#define CondFormats_HGCalObjects_HGCalCondSerializableGenericConfig_h
 
 #include <string>
 #include <map>
@@ -15,20 +15,20 @@
 
 #include "CondFormats/Serialization/interface/Serializable.h"
 
-class HGCalLabTestConditions {
+class HGCalCondSerializableGenericConfig {
 public:
-  HGCalLabTestConditions();
-  ~HGCalLabTestConditions();
+  HGCalCondSerializableGenericConfig();
+  ~HGCalCondSerializableGenericConfig();
 
   std::vector<std::string> keys() const;
   const std::vector<int>& parameters(const std::string&) const;
 
-  HGCalLabTestConditions& addParameter(const std::string&, const std::vector<int>&);
-  inline HGCalLabTestConditions& addParameter(const std::string& key, int value) {
+  HGCalCondSerializableGenericConfig& addParameter(const std::string&, const std::vector<int>&);
+  inline HGCalCondSerializableGenericConfig& addParameter(const std::string& key, int value) {
     return addParameter(key, std::vector<int>{value});
   }
 
-  friend std::ostream& operator<<(std::ostream&, const HGCalLabTestConditions&);
+  friend std::ostream& operator<<(std::ostream&, const HGCalCondSerializableGenericConfig&);
 
 private:
   std::map<std::string, std::vector<int> > params_;

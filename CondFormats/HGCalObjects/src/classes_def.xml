@@ -1,8 +1,22 @@
 <lcgdict>
+
+  <class name="HGCalCondSerializableGenericConfig" class_version="0">
+    <field name="params_" mapping="blob"/>
+  </class>
   <class name="std::vector<int>"/>
   <class name="std::map<std::string, std::vector<int> >"/>
   <class name="std::pair<std::string, std::vector<int> >"/>
-  <class name="HGCalLabTestConditions" class_version="0">
+
+  <class name="HGCalCondSerializableSiCellChannelInfo" class_version="0">
     <field name="params_" mapping="blob"/>
   </class>
+  <class name="HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo"/>
+  <class name="std::vector<HGCalCondSerializableSiCellChannelInfo::HGCalSiCellChannelInfo>"/>
+
+  <class name="HGCalCondSerializableSiPMTileInfo" class_version="0">
+    <field name="params_" mapping="blob"/>
+  </class>
+  <class name="HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo"/>
+  <class name="std::vector<HGCalCondSerializableSiPMTileInfo::HGCalSiPMTileInfo>"/>
+
 </lcgdict>
