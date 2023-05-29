@@ -12,9 +12,8 @@ struct HGCalSiCellChannelInfo {
   bool isHD,iscalib;
   uint8_t wafType, chip, half;
   uint16_t seq,rocpin;
-  int sicell,iu,iv,t;
+  int sicell,triglink,trigcell,iu,iv,t;
   float trace;
-  
   COND_SERIALIZABLE;
 };
 
