@@ -3,6 +3,6 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
 <use name="yaml-cpp"/>
-<library file="HGCalConfigESSourceFromYAML.cc">
-  <flags EDM_PLUGIN="1"/>
+<flags EDM_PLUGIN="1"/>
+<library file="HGCalConfigESSourceFromYAMLAnalyzer.cc" name="HGCalConfigESSourceFromYAMLAnalyzer">
 </library>

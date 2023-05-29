@@ -15,13 +15,13 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "CondFormats/DataRecord/interface/HGCalLabTestConditionsRcd.h"
-#include "CondFormats/HGCalObjects/interface/HGCalLabTestConditions.h"
+#include "CondFormats/DataRecord/interface/HGCalCondSerializableGenericConfigRcd.h"
+#include "CondFormats/HGCalObjects/interface/HGCalCondSerializableGenericConfig.h"
 
-class HGCalLabTestConditionsAnalyzer : public edm::one::EDAnalyzer<> {
+class HGCalConfigESSourceFromYAMLAnalyzer : public edm::one::EDAnalyzer<> {
 public:
-  explicit HGCalLabTestConditionsAnalyzer(const edm::ParameterSet& iConfig)
-      : tokenConds_(esConsumes<HGCalLabTestConditions, HGCalLabTestConditionsRcd>(
+  explicit HGCalConfigESSourceFromYAMLAnalyzer(const edm::ParameterSet& iConfig)
+      : tokenConds_(esConsumes<HGCalCondSerializableGenericConfig, HGCalCondSerializableGenericConfigRcd>(
             edm::ESInputTag(iConfig.getParameter<std::string>("label")))) {}
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
@@ -33,12 +33,12 @@ public:
 private:
   void analyze(const edm::Event&, const edm::EventSetup& iSetup) override {
     // get timing calibration parameters
-    if (calibWatcher_.check(iSetup))
-      edm::LogInfo("HGCalLabTestConditionsAnalyzer") << "Conditions retrieved:\n" << iSetup.getData(tokenConds_);
+    if (cfgWatcher_.check(iSetup))
+      edm::LogInfo("HGCalConfigESSourceFromYAMLAnalyzer") << "Conditions retrieved:\n" << iSetup.getData(tokenConds_);
   }
 
-  edm::ESWatcher<HGCalLabTestConditionsRcd> calibWatcher_;
-  edm::ESGetToken<HGCalLabTestConditions, HGCalLabTestConditionsRcd> tokenConds_;
+  edm::ESWatcher<HGCalCondSerializableGenericConfigRcd> cfgWatcher_;
+  edm::ESGetToken<HGCalCondSerializableGenericConfig, HGCalCondSerializableGenericConfigRcd> tokenConds_;
 };
 
-DEFINE_FWK_MODULE(HGCalLabTestConditionsAnalyzer);
+DEFINE_FWK_MODULE(HGCalConfigESSourceFromYAMLAnalyzer);

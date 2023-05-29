@@ -151,8 +151,7 @@ PAYLOAD_2XML_MODULE(pluginUtilities_payload2xml) {
   PAYLOAD_2XML_CLASS(HcalTPParameters);
   PAYLOAD_2XML_CLASS(HcalTimeCorrs);
   PAYLOAD_2XML_CLASS(HcalZDCLowGainFractions);
-  PAYLOAD_2XML_CLASS(HcalZSThresholds);
-  PAYLOAD_2XML_CLASS(HGCalLabTestConditions);
+  PAYLOAD_2XML_CLASS(HcalZSThresholds);  
   PAYLOAD_2XML_CLASS(JME::JetResolutionObject);
   PAYLOAD_2XML_CLASS(JetCorrectorParametersCollection);
   PAYLOAD_2XML_CLASS(L1CaloEcalScale);
@@ -224,6 +223,7 @@ PAYLOAD_2XML_MODULE(pluginUtilities_payload2xml) {
   PAYLOAD_2XML_CLASS(PCaloGeometry);
   PAYLOAD_2XML_CLASS(PGeometricDet);
   PAYLOAD_2XML_CLASS(PHGCalParameters);
+  PAYLOAD_2XML_CLASS(HGCalCondSerializableGenericConfig);
   PAYLOAD_2XML_CLASS(PTrackerParameters);
   PAYLOAD_2XML_CLASS(PTrackerAdditionalParametersPerDet);
   PAYLOAD_2XML_CLASS(PerformancePayloadFromBinnedTFormula);
