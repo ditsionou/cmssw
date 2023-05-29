@@ -123,6 +123,7 @@
 #include "CondFormats/GeometryObjects/interface/PTrackerParameters.h"
 #include "CondFormats/GeometryObjects/interface/PTrackerAdditionalParametersPerDet.h"
 #include "CondFormats/GeometryObjects/interface/PHGCalParameters.h"
+#include "CondFormats/HGCalObjects/interface/HGCalCondSerializableGenericConfig.h"
 #include "CondFormats/RPCObjects/interface/RPCEMap.h"
 #include "CondFormats/RPCObjects/interface/RPCObFebmap.h"
 #include "CondFormats/RPCObjects/interface/RPCObGas.h"
