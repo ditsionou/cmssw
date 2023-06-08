@@ -1,6 +1,4 @@
 #include "EventFilter/HGCalRawToDigi/interface/HGCalSlinkFromRaw.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/Utilities/interface/Exception.h"
 
 // example reader by P.Dauncey, using https://gitlab.cern.ch/pdauncey/hgcal10glinkreceiver
 
@@ -28,6 +26,7 @@ FEDRawDataCollection SlinkFromRaw::next() {
   if( fileReader_.closed() ) {
     auto inputfile = inputfiles_[ifile_];
     fileReader_.open(inputfile);
+    
   }
 
   //no more records in the file
@@ -45,16 +44,15 @@ FEDRawDataCollection SlinkFromRaw::next() {
   
   // Set up specific records to interpet the formats
   const hgcal_slinkfromraw::RecordStarting *rStart((hgcal_slinkfromraw::RecordStarting*)record_);
-  const hgcal_slinkfromraw::RecordStopping *rStop ((hgcal_slinkfromraw::RecordStopping*)record_);
+  const hgcal_slinkfromraw::RecordStopping *rStop((hgcal_slinkfromraw::RecordStopping*)record_);
   const hgcal_slinkfromraw::RecordRunning  *rEvent((hgcal_slinkfromraw::RecordRunning*)record_);
   if(record_->state()==hgcal_slinkfromraw::FsmState::Starting) {
     rStart->print();
     std::cout << std::endl;
-  } else if(record_->state()==hgcal_slinkfromraw::FsmState::Stopping) {
+  } else if(record_->state()==hgcal_slinkfromraw::FsmState::Stopping){
     rStop->print();
     std::cout << std::endl;
-  } else {
-                
+  } else {                
     // We have a new event
     nEvents_++;
     bool print(nEvents_<=1);
