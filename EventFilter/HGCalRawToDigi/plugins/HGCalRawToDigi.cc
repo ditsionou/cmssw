@@ -12,7 +12,7 @@
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "DataFormats/HGCalDigi/interface/HGCalElectronicsId.h"
 #include "DataFormats/HGCalDigi/interface/HGCalDigiCollections.h"
-#include "DataFormats/HGCalDigi/interface/HGCalHostDigiCollection.h"
+#include "DataFormats/HGCalDigi/interface/HGCalDigiHostCollection.h"
 
 class HGCalRawToDigi : public edm::stream::EDProducer<> {
 public:
@@ -26,7 +26,7 @@ private:
   const edm::EDGetTokenT<FEDRawDataCollection> fedRawToken_;
   const edm::EDPutTokenT<HGCalDigiCollection> digisToken_;
   const edm::EDPutTokenT<HGCalElecDigiCollection> elecDigisToken_;
-  const edm::EDPutTokenT<hgcaldigi::HGCalHostDigiCollection> elecDigisSoAToken_;
+  const edm::EDPutTokenT<hgcaldigi::HGCalDigiHostCollection> elecDigisSoAToken_;
 
   const std::vector<unsigned int> fedIds_;
   const unsigned int badECONDMax_;
@@ -38,7 +38,7 @@ HGCalRawToDigi::HGCalRawToDigi(const edm::ParameterSet& iConfig)
     : fedRawToken_(consumes<FEDRawDataCollection>(iConfig.getParameter<edm::InputTag>("src"))),
       digisToken_(produces<HGCalDigiCollection>()),
       elecDigisToken_(produces<HGCalElecDigiCollection>()),
-      elecDigisSoAToken_(produces<hgcaldigi::HGCalHostDigiCollection>()),
+      elecDigisSoAToken_(produces<hgcaldigi::HGCalDigiHostCollection>()),
       fedIds_(iConfig.getParameter<std::vector<unsigned int> >("fedIds")),
       badECONDMax_(iConfig.getParameter<unsigned int>("badECONDMax")),
       numERxsInECOND_(iConfig.getParameter<unsigned int>("numERxsInECOND")),
@@ -108,8 +108,8 @@ void HGCalRawToDigi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
     }
   }
 
-  //auto elec_digis_soa = std::make_unique<hgcaldigi::HGCalHostDigiCollection>(elec_digis.size(), cms::alpakatools::host());
-  hgcaldigi::HGCalHostDigiCollection elec_digis_soa(elec_digis.size(),cms::alpakatools::host());
+  //auto elec_digis_soa = std::make_unique<hgcaldigi::HGCalDigiHostCollection>(elec_digis.size(), cms::alpakatools::host());
+  hgcaldigi::HGCalDigiHostCollection elec_digis_soa(elec_digis.size(),cms::alpakatools::host());
   for (unsigned int i = 0; i < elec_digis.size(); i++) {
       elec_digis_soa.view()[i].electronicsId() = elec_digis[i].id().raw();
       elec_digis_soa.view()[i].raw() = elec_digis[i].raw();
