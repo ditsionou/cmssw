@@ -39,7 +39,7 @@ options.register('storeRAWOutput', False, VarParsing.VarParsing.multiplicity.sin
 options.register('storeEmulatorInfo', False, VarParsing.VarParsing.multiplicity.singleton, VarParsing.VarParsing.varType.int,
                  'also store the emulator metadata')
 
-options.maxEvents = 10  # number of events to emulate
+options.maxEvents = -1  # number of events to emulate
 options.output = 'output.root'  # output EDM file
 options.secondaryOutput = 'output.raw'  # output streamer file
 options.parseArguments()
@@ -57,8 +57,11 @@ process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEv
 process.source = cms.Source("EmptySource")
 process.hgcalEmulatedSlinkRawData.emulatorType = options.mode
 if process.hgcalEmulatedSlinkRawData.emulatorType == 'slinkfromraw':
-    process.hgcalEmulatedSlinkRawData.inputs = cms.untracked.vstring('/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/fakeRawData/Run1683391179_Link0_File0000000000.bin',
-                                                                     '/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/fakeRawData/Run1683391179_Link0_File0000000001.bin')
+    process.hgcalEmulatedSlinkRawData.inputs = cms.untracked.vstring('/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/fakeRawData/Run1683391179_Link0_File0000000000.bin')
+                                                                     # just for file handling testing
+                                                                     #'/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/fakeRawData/Run1683391179_Link0_File0000000000.bin', 
+                                                                     #'/eos/cms/store/group/dpg_hgcal/tb_hgcal/2023/fakeRawData/Run1683391179_Link0_File0000000001.bin')
+
     process.hgcalEmulatedSlinkRawData.treeName = cms.untracked.string('')
 
 process.hgcalEmulatedSlinkRawData.storeEmulatorInfo = bool(options.storeEmulatorInfo)
