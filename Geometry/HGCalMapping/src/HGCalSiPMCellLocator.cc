@@ -29,7 +29,7 @@ void HGCalSiPMCellLocator::buildLocatorFrom(std::string channelpath)
 
 int HGCalSiPMCellLocator::getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const
 {
-  return seq + 36*(int)(econderx);
+  return halfrocch + 36*econderx;
 }
 
 std::tuple<int,int,int> HGCalSiPMCellLocator::getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const
@@ -60,7 +60,6 @@ HGCalSiPMTileInfo HGCalSiPMCellLocator::getCellByGeom(int layer, int iring, int 
   return *it;
 } 
 
-
 std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const
 {
   int sipmcell = getSiPMchannel(seq, (int)id.econdeRx(), (int)id.halfrocChannel());
@@ -70,7 +69,6 @@ std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
   if(it==cellColl_.params_.end()){
-    std::cout << "sipmcell: " << sipmcell << ", layer: " << layer << ", modiring: " << modiring << std::endl;
     edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
     throw e;
   }
@@ -100,10 +98,10 @@ DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int
   int idlayer = layer - 25;
   int idtype = ((idlayer <= 8) ? 0 : ((idlayer <= 17) ? 1 : 2));
   int ring = ((z == 0) ? celliring : (-1)*celliring);
-  // iphi currently calculated for SiPM modules with iphi 0-7 only
-  int iphi = modiphi*8 + celliphi+1;
+  // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
+  int iphi = modiphi*8 + celliphi + 1;
 
-  HGCScintillatorDetId detid(idtype, idlayer, ring, iphi, false, false);
+  HGCScintillatorDetId detid(idtype, idlayer, ring, iphi, false, true);
   return detid;
 }
 
@@ -131,8 +129,8 @@ std::tuple<int,int,int> HGCalSiPMCellLocator::getModuleLocation(DetId& id) const
     {
       modiring = ((cellring <= 5) ? 0 : ((cellring <= 17 ) ? 1 : ((cellring <= 25) ? 2 : ((cellring <= 33) ? 3 : 4))));
     }
-    // iphi currently calculated for SiPM modules with iphi 0-7 only
-    int modiphi = detid.iphi()/8;
+    // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
+    int modiphi = (detid.iphi()-1)/8;
 
     return std::make_tuple(layer,modiring,modiphi);
   }

@@ -14,6 +14,7 @@ HGCalSiCellLocator::HGCalSiCellLocator() {
 void HGCalSiCellLocator::buildLocatorFrom(std::string url,bool append,bool usefip) {
 
   if(!append) cellColl_.params_.clear();
+
   //open file and parse each line
   if(usefip){
     edm::FileInPath fip(url);
@@ -24,7 +25,9 @@ void HGCalSiCellLocator::buildLocatorFrom(std::string url,bool append,bool usefi
   //skip the first line
   std::getline(inF, line);
   while (std::getline(inF, line)) {
+
     std::istringstream strm(line);
+    
     //density and rocpin  need to be decoded from the string, other fields are read directly
     HGCalSiCellChannelInfo c;
     std::string denscol,rocpincol;
@@ -50,14 +53,15 @@ void HGCalSiCellLocator::buildLocatorFrom(std::string url,bool append,bool usefi
 
 //
 HGCalSiCellChannelInfo HGCalSiCellLocator::locateCellByGeom(int iu,int iv,uint8_t wafType, bool isHD) {
-  auto _matchesByGeom = [iu,iv,wafType,isHD](HGCalSiCellChannelInfo c){ return c.iu == iu && c.iv == iv; };
+
+  auto _matchesByGeom = [iu,iv,wafType,isHD](HGCalSiCellChannelInfo c){ return c.iu==iu && c.iv==iv && c.wafType==wafType && c.isHD==isHD; };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByGeom);
   if(it==cellColl_.params_.end()) {
-    std::cout << "iu: " << iu << ", iv: " << iv << ", wafType: " << int(wafType) << ", isHD: " << isHD << std::endl; 
     edm::Exception e(edm::errors::NotFound,"Failed to match Si cell to channel by geometry");
     throw e;
   }
   return *it;
+
 }
 
 DetId HGCalSiCellLocator::getDetId(HGCalElectronicsId& id, int z, int layer, int modU, int modV) const
@@ -79,6 +83,7 @@ DetId HGCalSiCellLocator::getDetId(HGCalElectronicsId& id, int z, int layer, int
   HGCSiliconDetId detId(DetId::HGCalHSc, z, it->wafType, layer, modU, modV, it->iu, it->iv);
   return detId;
 }
+  
 
 //
 HGCalSiCellLocator::~HGCalSiCellLocator() {

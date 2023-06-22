@@ -20,22 +20,23 @@ HGCalElectronicsId::HGCalElectronicsId(
 }
 
 //
-bool HGCalElectronicsId::isCM() { return (value_ >> kCommonModeShift) & kCommonMode; }
+uint16_t HGCalElectronicsId::fedId() const { return (value_ >> kFEDIDShift) & kFEDIDMask; }
 
 //
-uint16_t HGCalElectronicsId::fedId() { return (value_ >> kFEDIDShift) & kFEDIDMask; }
+bool HGCalElectronicsId::isCM() const { return (value_ >> kCommonModeShift) & kCommonMode; }
 
 //
-uint8_t HGCalElectronicsId::captureBlock() { return (value_ >> kCaptureBlockShift) & kCaptureBlockMask; }
+uint8_t HGCalElectronicsId::captureBlock() const { return (value_ >> kCaptureBlockShift) & kCaptureBlockMask; }
 
 //
-uint8_t HGCalElectronicsId::econdIdx() { return (value_ >> kECONDIdxShift) & kECONDIdxMask; }
+uint8_t HGCalElectronicsId::econdIdx() const { return (value_ >> kECONDIdxShift) & kECONDIdxMask; }
 
 //
-uint8_t HGCalElectronicsId::econdeRx() { return (value_ >> kECONDeRxShift) & kECONDeRxMask; }
+uint8_t HGCalElectronicsId::econdeRx() const { return (value_ >> kECONDeRxShift) & kECONDeRxMask; }
 
 //
-uint8_t HGCalElectronicsId::halfrocChannel() { return (value_ >> kHalfROCChannelShift) & kHalfROCChannelMask; }
+
+uint8_t HGCalElectronicsId::halfrocChannel() const { return (value_ >> kHalfROCChannelShift) & kHalfROCChannelMask; }
 
 //
-uint8_t HGCalElectronicsId::sequentialHalfrocChannel() { return halfrocChannel() + isCM()*37; }
+uint8_t HGCalElectronicsId::sequentialHalfrocChannel() const { return halfrocChannel() + isCM()*37; }
