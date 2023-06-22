@@ -32,6 +32,9 @@ class HGCalSiPMCellLocator {
 
         void buildLocatorFrom(std::string channelpath);
 
+        // // Cell information from geom location
+        HGCalSiPMTileInfo getCellByGeom(int layer, int iring, int iphi) const;
+
         // // Cell location from ROC fields and Module location
         std::tuple<int,int,int> getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const;
 

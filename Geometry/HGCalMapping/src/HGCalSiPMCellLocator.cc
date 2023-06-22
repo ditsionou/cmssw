@@ -29,7 +29,7 @@ void HGCalSiPMCellLocator::buildLocatorFrom(std::string channelpath)
 
 int HGCalSiPMCellLocator::getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const
 {
-  return seq + 72*(int)(econderx/2) + 36*halfrocch;
+  return seq + 36*(int)(econderx);
 }
 
 std::tuple<int,int,int> HGCalSiPMCellLocator::getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const
@@ -47,6 +47,19 @@ std::tuple<int,int,int> HGCalSiPMCellLocator::getCellLocation(int seq, int econd
   return std::make_tuple(it->plane, it->iring, it->iphi);
 }
 
+HGCalSiPMTileInfo HGCalSiPMCellLocator::getCellByGeom(int layer, int iring, int iphi) const
+{
+  auto _matchesByGeom = [iring, iphi, layer](HGCalSiPMTileInfo c){
+    return c.iring == iring && c.iphi == iphi && c.plane == layer;
+  };
+  auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByGeom);
+  if(it==cellColl_.params_.end()){
+    edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellByGeom: Failed to match cell by geom location");
+    throw e;
+  }
+  return *it;
+} 
+
 
 std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const
 {
@@ -57,6 +70,7 @@ std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
   if(it==cellColl_.params_.end()){
+    std::cout << "sipmcell: " << sipmcell << ", layer: " << layer << ", modiring: " << modiring << std::endl;
     edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
     throw e;
   }
@@ -87,9 +101,9 @@ DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int
   int idtype = ((idlayer <= 8) ? 0 : ((idlayer <= 17) ? 1 : 2));
   int ring = ((z == 0) ? celliring : (-1)*celliring);
   // iphi currently calculated for SiPM modules with iphi 0-7 only
-  int iphi = modiphi*8 + celliphi;
+  int iphi = modiphi*8 + celliphi+1;
 
-  HGCScintillatorDetId detid(idtype, idlayer, ring, iphi, false, true);
+  HGCScintillatorDetId detid(idtype, idlayer, ring, iphi, false, false);
   return detid;
 }
 

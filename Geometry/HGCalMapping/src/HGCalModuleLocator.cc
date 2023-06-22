@@ -10,7 +10,6 @@ void HGCalModuleLocator::buildLocatorFrom(std::string path,bool usefip)
     path=fip.fullPath();
   }
   std::ifstream file(path);
-
   std::string line;
   while(std::getline(file, line))
   {
