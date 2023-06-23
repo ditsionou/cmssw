@@ -13,6 +13,7 @@
   <use name="FWCore/ParameterSet"/>
   <use name="Geometry/HGCalMapping"/>
   <use name="Geometry/HGCalGeometry"/>
+  <use name="FWCore/ServiceRegistry"/>
   <flags EDM_PLUGIN="1"/>
 </library>
 

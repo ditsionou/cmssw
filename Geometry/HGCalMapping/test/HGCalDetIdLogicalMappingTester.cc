@@ -5,6 +5,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/ESWatcher.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "CondFormats/DataRecord/interface/HGCalCondSerializableModuleInfoRcd.h"
@@ -17,7 +18,6 @@
 #include "Geometry/HGCalMapping/interface/HGCalSiCellLocator.h"
 #include "Geometry/HGCalMapping/interface/HGCalModuleLocator.h"
 
-#include "DataFormats/ForwardDetId/interface/HGCSiliconDetIdToROC.h"
 #include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
 
 #include <iostream>
@@ -53,7 +53,7 @@ private:
 
   //tokens and record watches
   edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geomToken_;
-  //edm::ESGetToken<HGCalCondSerializableModuleInfo, HGCalCondSerializableModuleInfoRcd> moduleInfoToken_;
+
   std::string modFilename_;
   std::string sipmFilename_;
   std::string siFilename_;
@@ -74,37 +74,60 @@ void HGCalDetIdLogicalMappingTester::analyze(const edm::Event&, const edm::Event
   std::map<DetId, HGCalElectronicsId> mappedIds;
 
   const CaloGeometry *caloGeom = &iSetup.getData(geomToken_);
-  const HGCalGeometry *sipmGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(DetId::HGCalHSc, ForwardSubdetector::ForwardEmpty));
-  const HGCalGeometry *siGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(DetId::HGCalHSi, ForwardSubdetector::ForwardEmpty));
+  std::vector<DetId::Detector> siDets = {DetId::HGCalEE, DetId::HGCalHSi};
 
   bool isSiPM;
-  //for (const auto& baseCellId : siGeom->getValidDetIds()) {
-  //  HGCSiliconDetId siDetId(baseCellId.rawId());
-  //  isSiPM = false;
-  //  int modU = siDetId.waferU();
-  //  int modV = siDetId.waferV();
-  //  int layer = siDetId.layer();
-  //  int econdIdx = modLocator.getEcondIdx(layer, modU, modV, isSiPM);
-  //  int captureblock = modLocator.getCaptureBlockIdx(layer, modU, modV, isSiPM);
-  //  int fedId = modLocator.getFedId(layer, modU, modV, isSiPM);
+  int foundSipmCells = 0, foundSiCells = 0, missingSipmCells = 0, missingSiCells = 0, missingModules = 0;
+  for (const auto& d : siDets) {
+   
+    const HGCalGeometry *siGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(d, ForwardSubdetector::ForwardEmpty));
+    continue;
+    for (const auto& baseCellId : siGeom->getValidDetIds()) {
+      HGCSiliconDetId siDetId(baseCellId.rawId());
+      isSiPM = false;
+      int modU = siDetId.waferU();
+      int modV = siDetId.waferV();
+      int layer = siDetId.layer();
+      HGCalModuleInfo modInfo;
+      try{
+         modInfo = modLocator.getModuleFromGeom(layer, modU, modV, isSiPM);
+      }
+      catch(...) {
+        missingModules++;
+        continue;
+      }
 
-  //  HGCalSiCellChannelInfo cellInfo = siCellLocator.locateCellByGeom(siDetId.cellU(), siDetId.cellV(), siDetId.type(), false); //isHD
-  //  uint16_t rocPin = cellInfo.rocpin;
-  //  uint8_t rocHalf = cellInfo.half; 
-  //  int rocNumber = HGCSiliconDetIdToROC().getROCNumber(siDetId.triggerCellU(), siDetId.triggerCellV(), siDetId.type())-1;
-  //  int econdErx = rocNumber*2+rocHalf;
-  //  HGCalElectronicsId siEleId(fedId, captureblock, econdIdx, econdErx, rocPin);
-  //  if (mappedIds.count(siDetId)==0) {
-  //    mappedIds[siDetId]=siEleId;
-  //  }
-  //  else {
-  //     edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a duplicate detID in silicon HGCAL geom.");
-  //     throw e;
-  //  }
-  //}
+      HGCalParameters::waferInfo wafInfo = siGeom->topology().dddConstants().waferInfo(layer,modU,modV);
+      HGCalSiCellChannelInfo cellInfo;
+      try{ 
+        cellInfo = siCellLocator.locateCellByGeom(siDetId.cellU(), siDetId.cellV(), wafInfo.part, modInfo.isHD);
+      }
+      catch(...) {
+        missingSiCells++;
+        continue;
+      }
+      foundSiCells++; 
+      int econdErx = cellInfo.chip*2+cellInfo.half;
+ 
+      // The electronics ID only uses 4 bits for the captureblock, so we need to skip values over 15.  
+      if(modInfo.captureblock>15){continue;}
 
-  int goodCells = 0;
-  int missingCells = 0;
+      HGCalElectronicsId siEleId(modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, cellInfo.seq);
+      if (mappedIds.count(siDetId)==0) {
+        mappedIds[siDetId]=siEleId;
+      }
+      else {
+         edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a duplicate detID in silicon HGCAL geom.");
+         throw e;
+      }
+    }
+    std::string detType("HGCalEE");
+    if(d==DetId::HGCalHSi){detType="HGCalHSi";}
+    edm::LogInfo("HGCalMapping") << "Found " << foundSiCells << " " << detType << " cells in both geometry and si cell mapper, " << missingSiCells << " included in geometry but missing in map." << std::endl;
+  }
+
+  const HGCalGeometry *sipmGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(DetId::HGCalHSc, ForwardSubdetector::ForwardEmpty));
+
   for (const auto& baseCellId : sipmGeom->getValidDetIds()) {
     isSiPM = true;
     HGCScintillatorDetId sipmDetId(baseCellId.rawId());
@@ -115,22 +138,32 @@ void HGCalDetIdLogicalMappingTester::analyze(const edm::Event&, const edm::Event
     int modiphi = std::get<2>(modLoc);
     
     // For module locator, iu->iring, iv->iphi
-    int econdIdx = modLocator.getEcondIdx(layer, modiring, modiphi, isSiPM);
-    int captureBlock = modLocator.getCaptureBlockIdx(layer, modiring, modiphi, isSiPM);
-    int fedId = modLocator.getFedId(layer, modiring, modiphi, isSiPM);
+    HGCalModuleInfo modInfo;
+    try{
+      modInfo = modLocator.getModuleFromGeom(layer, modiring, modiphi, isSiPM);
+    }
+    catch(...) {
+      missingModules++;
+      continue;
+    }
     HGCalSiPMTileInfo cellInfo;
     try{ 
       cellInfo = sipmCellLocator.getCellByGeom(layer,sipmDetId.ring(),(sipmDetId.iphi()-1)%8);
     }
     catch(...) {
-      missingCells++;
+      missingSipmCells++;
       continue;
     }
+    foundSipmCells++;
+
     // Math here requires seq<36 and halfRoc 0 or 1. econdErx = ROC*2 + halfRoc
     int econdErx = 2*int(cellInfo.sipmcell/72) + int((cellInfo.sipmcell%72)/36);
-    int halfRocCh = cellInfo.sipmcell%36;
-    goodCells++;
-    HGCalElectronicsId sipmEleId(fedId, captureBlock, econdIdx, econdErx, halfRocCh);
+    int seqHalfRocCh = cellInfo.sipmcell%36;
+
+    // The electronics ID only uses 4 bits for the captureblock, so we need to skip values over 15.
+    if(modInfo.captureblock>15){continue;}
+
+    HGCalElectronicsId sipmEleId(modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, seqHalfRocCh);
     if (mappedIds.count(sipmDetId)==0) {
       mappedIds[sipmDetId]=sipmEleId;
     }
@@ -140,29 +173,63 @@ void HGCalDetIdLogicalMappingTester::analyze(const edm::Event&, const edm::Event
     }
   }
 
-  std::cout << "Good sipm cells: " << goodCells << ", bad sipm cells: " << missingCells << std::endl;
-  
-  /*for (const auto& eleIdIt : mappedIds) {
+  edm::LogInfo("HGCalMapping") << "Found " << foundSipmCells << " in geom and siCellLocator, missing " << missingSipmCells << " in geometry but not cell map." << std::endl;
+  edm::LogInfo("HGCalMapping") << "Number of modules in geometry but not found in module map: " << missingModules << std::endl;
+
+  const HGCalGeometry *siGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(DetId::HGCalHSi, ForwardSubdetector::ForwardEmpty));
+  const HGCalGeometry *eeGeom = static_cast<const HGCalGeometry *>(caloGeom->getSubdetectorGeometry(DetId::HGCalEE, ForwardSubdetector::ForwardEmpty));
+
+ 
+  for (const auto& eleIdIt : mappedIds) {
     HGCalElectronicsId thisId = eleIdIt.second;
     HGCalModuleInfo modInfo = modLocator.getModule(thisId.econdIdx(),thisId.captureBlock(), thisId.fedId());
     if(modInfo.isSiPM){
-       HGCScintillatorDetId sipmDetId = sipmCellLocator.getDetId(thisId, thisId.halfrocChannel(), modInfo.zside, modInfo.plane, modInfo.u, modInfo.v);
        HGCScintillatorDetId originalId(eleIdIt.first.rawId());
-       //if(sipmDetId!=originalId) {
-       //   std::cout << "siPM det id layer: " << originalId.layer() << ", ring: " << originalId.ring() << ", iphi: " << originalId.iphi() << ", type: " << originalId.type() << ", sipm: " << originalId.sipm() << ", trigger: " << originalId.trigger() << ", zside: " << originalId.zside() << std::endl;
-       //   std::cout << "log id det id layer: " << sipmDetId.layer() << ", ring: " << sipmDetId.ring() << ", iphi: " << sipmDetId.iphi() << ", type: " << sipmDetId.type() << ", sipm: " << sipmDetId.sipm() << ", trigger: " << originalId.trigger() << ", zside: " << sipmDetId.zside() << std::endl;
-       //   edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a scintillator logical ID that does not map back to its detID.");
-       //   throw e;
-       //}
+       HGCalParameters::tileInfo tileInfo = sipmGeom->topology().dddConstants().tileInfo(originalId.zside(),modInfo.plane,modInfo.u);
+       HGCScintillatorDetId sipmDetId = sipmCellLocator.getDetId(thisId, thisId.halfrocChannel(), originalId.zside(), modInfo.plane, modInfo.u, modInfo.v, originalId.type(), tileInfo.sipm);
+
+       //SipmDetId constructor doesn't have a zside method. Instead, manually set the bit in the id.
+       uint32_t newRawId = sipmDetId.rawId();
+       //For now, all modules have zside = -1 in the mapper, so we cheat by using the original detId
+       if(originalId.zside()==1){newRawId = newRawId&0xfcffffff;}
+       newRawId = (newRawId&0xff7fffff)|(originalId.sipm()<<23);
+       HGCScintillatorDetId modifiedSipmDetId(newRawId); 
+       if(modifiedSipmDetId!=originalId) {
+          edm::LogError("HGCalMapping") << "original raw ID: "  << std::hex << originalId.rawId() << ", new raw ID: " << modifiedSipmDetId.rawId() << std::dec << std::endl;  
+          edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a scintillator logical ID that does not map back to its detID.");
+          throw e;
+       }
     }
     else {
-       HGCSiliconDetId siDetId = siCellLocator.getDetId(thisId, modInfo.zside, modInfo.plane, modInfo.u, modInfo.v);
-       if(siDetId!=eleIdIt.first) {
-          edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a scintillator logical ID that does not map back to its detID.");
+       HGCSiliconDetId originalId(eleIdIt.first.rawId());
+
+       uint8_t roc = uint8_t(thisId.econdeRx()/2.);
+       uint8_t rocHalf = uint8_t(thisId.econdeRx()%2);
+       HGCalParameters::waferInfo wafInfo;
+
+       if(originalId.isHE()){ 
+          wafInfo = siGeom->topology().dddConstants().waferInfo(modInfo.plane,modInfo.u,modInfo.v);
+       }
+       else{
+         wafInfo = eeGeom->topology().dddConstants().waferInfo(modInfo.plane,modInfo.u,modInfo.v);
+       }
+       HGCalSiCellChannelInfo cellInfo = siCellLocator.locateCellByChannel(roc, rocHalf, thisId.halfrocChannel(), wafInfo.part, modInfo.isHD);
+       //For now, all modules have zside = -1 in the mapper, so we cheat by using the original detId
+       //HGCSiliconDetId siDetId(DetId::HGCalHSi, modInfo.zside, wafInfo.type, modInfo.plane, modInfo.u, modInfo.v, cellInfo.iu, cellInfo.iv);
+       
+       // !! Need to figure out whether module is EE or HE. For now, we cheat and use the original.
+       DetId::Detector detType=DetId::HGCalEE;
+       if(originalId.isHE()){detType=DetId::HGCalHSi;}
+
+       HGCSiliconDetId siDetId(detType, originalId.zside(), wafInfo.type, modInfo.plane, modInfo.u, modInfo.v, cellInfo.iu, cellInfo.iv);
+
+       if(siDetId!=originalId) {
+          edm::LogError("HGCalMapping") << "original raw ID: "  << std::hex << originalId.rawId() << ", new raw ID: " << siDetId.rawId() << std::dec << std::endl;  
+          edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::Found a silicon logical ID that does not map back to its detID.");
           throw e; 
        }
     }
-  }*/
+  }
 
 }
 

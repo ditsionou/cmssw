@@ -78,7 +78,7 @@ std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id
   return std::make_tuple(celliring, celliphi);
 }
 
-DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const
+DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const
 {
   int sipmcell = getSiPMchannel(seq, id.econdeRx(), id.halfrocChannel());
 
@@ -101,7 +101,7 @@ DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int
   // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
   int iphi = modiphi*8 + celliphi + 1;
 
-  HGCScintillatorDetId detid(idtype, idlayer, ring, iphi, false, true);
+  HGCScintillatorDetId detid(type, idlayer, ring, iphi, false, sipm);
   return detid;
 }
 

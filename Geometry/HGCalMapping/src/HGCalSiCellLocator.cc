@@ -33,9 +33,12 @@ void HGCalSiCellLocator::buildLocatorFrom(std::string url,bool append,bool usefi
     std::string denscol,rocpincol;
     strm >> denscol;
     c.isHD = denscol=="LD" ? false : true;
-    std::string wafType;
-    strm >> wafType >> c.chip >> c.half >> c.seq;
+    std::string wafType, half, chip, seq;
+    strm >> wafType >> chip >> half >> seq;
     c.wafType = std::stoi(wafType);
+    c.chip = std::stoi(chip);
+    c.half = std::stoi(half);
+    c.seq = std::stoi(seq);
     strm >> rocpincol;
     if(rocpincol.find("CALIB")!=std::string::npos) {
       c.iscalib=true;
@@ -64,26 +67,20 @@ HGCalSiCellChannelInfo HGCalSiCellLocator::locateCellByGeom(int iu,int iv,uint8_
 
 }
 
-DetId HGCalSiCellLocator::getDetId(HGCalElectronicsId& id, int z, int layer, int modU, int modV) const
-{
-  int chip = (int)(id.econdeRx()/2.);
-  int half = id.econdeRx()%2;
-  int rocpin = id.halfrocChannel();
-  int seq = id.sequentialHalfrocChannel();
-  std::cout << "chip: " << chip << ", half: " << half << ", rocpin: " << rocpin << ", seq: " << seq << std::endl; 
-  auto _matchesByChannel = [rocpin, seq, chip, half](HGCalSiCellChannelInfo c){
-    return c.rocpin == rocpin && c.seq == seq && c.chip == chip && c.half == half;
-  };
+HGCalSiCellChannelInfo HGCalSiCellLocator::locateCellByChannel(uint8_t roc, uint8_t rocHalf, uint16_t seq, uint8_t wafType, bool isHD){
+
+  auto _matchesByChannel = [roc,rocHalf,seq,wafType,isHD](HGCalSiCellChannelInfo c){ return c.chip==roc && c.half==rocHalf && c.seq == seq && c.wafType==wafType && c.isHD==isHD; };
+
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
   if(it==cellColl_.params_.end()) {
+    std::cout << "roc: " << int(roc) << ", half: " << int(rocHalf) << ", pin: " << seq << ", wafType: " << int(wafType) << ", isHD: " << isHD << std::endl;
     edm::Exception e(edm::errors::NotFound,"Failed to match Si cell to geometry by channel");
     throw e;
   }
+  return *it;
 
-  HGCSiliconDetId detId(DetId::HGCalHSc, z, it->wafType, layer, modU, modV, it->iu, it->iv);
-  return detId;
-}
-  
+} 
+
 
 //
 HGCalSiCellLocator::~HGCalSiCellLocator() {

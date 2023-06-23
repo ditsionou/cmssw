@@ -42,7 +42,7 @@ class HGCalSiPMCellLocator {
         std::tuple<int,int> getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const;
 
         // // DetId from ElectronicsId and Module location, including z-side
-        DetId getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const;
+        DetId getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type=0, int sipm=false) const;
 
         // // Module location (layer, ring, iphi) from DetId
         std::tuple<int,int,int> getModuleLocation(DetId& id) const;

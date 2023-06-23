@@ -15,7 +15,7 @@ public:
   HGCalSiCellLocator();
   void buildLocatorFrom(std::string url,bool append=false,bool usefip=false);
   HGCalSiCellChannelInfo locateCellByGeom(int iu,int iv,uint8_t wafType, bool isHD);
-  DetId getDetId(HGCalElectronicsId& id, int z, int layer, int modU, int modZ) const;  
+  HGCalSiCellChannelInfo locateCellByChannel(uint8_t roc, uint8_t rocHalf, uint16_t rocPin, uint8_t wafType, bool isHD);
   ~HGCalSiCellLocator();
 
 private:

@@ -7,6 +7,7 @@ options = VarParsing()
 options.register ("geom", "v17",  VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.parseArguments()
 
+
 process = cms.Process("demo",eras.Phase2C17I13M9)
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
@@ -19,6 +20,8 @@ else:
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 process.source = cms.Source("EmptySource")
+
+process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger = cms.Service("MessageLogger",
     cerr = cms.untracked.PSet(
         enable = cms.untracked.bool(False)
@@ -26,8 +29,15 @@ process.MessageLogger = cms.Service("MessageLogger",
     cout = cms.untracked.PSet(
         enable = cms.untracked.bool(True),
         threshold = cms.untracked.string('INFO')
-    )
+    ),
 )
+if hasattr(process, 'MessageLogger'):
+    process.MessageLogger.cerr = cms.untracked.PSet(enable = cms.untracked.bool(False))
+    process.MessageLogger.cout = cms.untracked.PSet(
+        enable = cms.untracked.bool(True),
+        threshold = cms.untracked.string('INFO')
+        )
+
 
 process.analyzer = cms.EDAnalyzer("HGCalDetIdLogicalMappingTester",
                                   modFile = cms.string('Geometry/HGCalMapping/data/modulelocator.txt'),
