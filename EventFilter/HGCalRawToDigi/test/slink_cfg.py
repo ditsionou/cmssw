@@ -39,7 +39,7 @@ options.register('storeRAWOutput', False, VarParsing.VarParsing.multiplicity.sin
 options.register('storeEmulatorInfo', False, VarParsing.VarParsing.multiplicity.singleton, VarParsing.VarParsing.varType.int,
                  'also store the emulator metadata')
 
-options.maxEvents = -1  # number of events to emulate
+options.maxEvents = 10  # number of events to emulate
 options.output = 'output.root'  # output EDM file
 options.secondaryOutput = 'output.raw'  # output streamer file
 options.parseArguments()
