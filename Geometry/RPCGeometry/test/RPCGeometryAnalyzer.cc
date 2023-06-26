@@ -1,4 +1,4 @@
-/** derived from DTGeometryAnalyzer by Nicola Amapane
+/** Derived from DTGeometryAnalyzer by Nicola Amapane
  *
  *  \author M. Maggi - INFN Bari
  */
@@ -10,10 +10,9 @@
 #include <FWCore/Framework/interface/one/EDAnalyzer.h>
 #include <FWCore/Framework/interface/Event.h>
 #include <FWCore/Framework/interface/EventSetup.h>
-#include <FWCore/MessageLogger/interface/MessageLogger.h>
 #include <FWCore/ParameterSet/interface/ParameterSet.h>
 
-#include <Geometry/RPCGeometry/interface/RPCGeometry.h>
+#include "Geometry/RPCGeometry/interface/RPCGeometry.h"
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 #include <Geometry/CommonTopologies/interface/RectangularStripTopology.h>
 #include <Geometry/CommonTopologies/interface/TrapezoidalStripTopology.h>
@@ -23,6 +22,8 @@
 #include <vector>
 #include <iomanip>
 #include <set>
+
+using namespace std;
 
 class RPCGeometryAnalyzer : public edm::one::EDAnalyzer<> {
 public:
@@ -50,35 +51,35 @@ RPCGeometryAnalyzer::RPCGeometryAnalyzer(const edm::ParameterSet& /*iConfig*/)
       dashedLine_(std::string(dashedLineWidth_, '-')),
       myName_("RPCGeometryAnalyzer") {
   ofos.open("MytestOutput.out");
-  edm::LogVerbatim("RPCGeometry") << "======================== Opening output file";
+  std::cout << "======================== Opening output file" << std::endl;
 }
 
 RPCGeometryAnalyzer::~RPCGeometryAnalyzer() {
   ofos.close();
-  edm::LogVerbatim("RPCGeometry") << "======================== Closing output file";
+  std::cout << "======================== Closing output file" << std::endl;
 }
 
 void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::EventSetup& iSetup) {
   const RPCGeometry* pDD = &iSetup.getData(tokRPC_);
 
-  ofos << myName() << ": Analyzer..." << std::endl;
-  ofos << "start " << dashedLine_ << std::endl;
+  std::cout << myName() << ": Analyzer..." << std::endl;
+  std::cout << "start " << dashedLine_ << std::endl;
 
-  ofos << " Geometry node for RPCGeom is  " << &(*pDD) << std::endl;
-  ofos << " I have " << pDD->detTypes().size() << " detTypes" << std::endl;
-  ofos << " I have " << pDD->detUnits().size() << " detUnits" << std::endl;
-  ofos << " I have " << pDD->dets().size() << " dets" << std::endl;
-  ofos << " I have " << pDD->rolls().size() << " rolls" << std::endl;
-  ofos << " I have " << pDD->chambers().size() << " chambers" << std::endl;
+  std::cout << " Geometry node for RPCGeom is  " << &(*pDD) << std::endl;
+  cout << " I have " << pDD->detTypes().size() << " detTypes" << endl;
+  cout << " I have " << pDD->detUnits().size() << " detUnits" << endl;
+  cout << " I have " << pDD->dets().size() << " dets" << endl;
+  cout << " I have " << pDD->rolls().size() << " rolls" << endl;
+  cout << " I have " << pDD->chambers().size() << " chambers" << endl;
 
-  ofos << myName() << ": Begin iteration over geometry..." << std::endl;
-  ofos << "iter " << dashedLine_ << std::endl;
+  std::cout << myName() << ": Begin iteration over geometry..." << std::endl;
+  std::cout << "iter " << dashedLine_ << std::endl;
 
-  ofos << "\n  #     id(hex)      id(dec)                   "
-          "  g(x=0)   g(y=0)   g(z=0)  g(z=-1)  g(z=+1)  Ns "
-          "  phi(0)  phi(s1)  phi(sN)    dphi    dphi'      ds     off"
-          "       uR       uL       lR       lL"
-       << std::endl;
+  std::cout << "\n  #     id(hex)      id(dec)                   "
+               "  g(x=0)   g(y=0)   g(z=0)  g(z=-1)  g(z=+1)  Ns "
+               "  phi(0)  phi(s1)  phi(sN)    dphi    dphi'      ds     off"
+               "       uR       uL       lR       lL"
+            << std::endl;
 
   int iRPCCHcount = 0;
 
@@ -107,18 +108,18 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
       RPCDetId detId = ch->id();
       int idRaf = detId.rawId();
       //       const RPCRoll* rollRaf = ch->roll(1);
-      ofos << "Num = " << iRPCCHcount << "  "
-           << "RPCDet = " << idRaf << "  Num Rolls =" << ch->nrolls();
+      std::cout << "Num = " << iRPCCHcount << "  "
+                << "RPCDet = " << idRaf << "  Num Rolls =" << ch->nrolls() << std::endl;
       //       "  "<<"Roll 1 = "<<(rollRaf->id()).rawId()<<std::endl;
 
       std::vector<const RPCRoll*> rollsRaf = (ch->rolls());
       for (auto& r : rollsRaf) {
         if (r->id().region() == 0) {
-          ofos << "RPCDetId = " << r->id().rawId() << std::endl;
-          ofos << "Region = " << r->id().region() << "  Ring = " << r->id().ring()
-               << "  Station = " << r->id().station() << "  Sector = " << r->id().sector()
-               << "  Layer = " << r->id().layer() << "  Subsector = " << r->id().subsector()
-               << "  Roll = " << r->id().roll() << std::endl;
+          std::cout << "RPCDetId = " << r->id().rawId() << std::endl;
+          std::cout << "Region = " << r->id().region() << "  Ring = " << r->id().ring()
+                    << "  Station = " << r->id().station() << "  Sector = " << r->id().sector()
+                    << "  Layer = " << r->id().layer() << "  Subsector = " << r->id().subsector()
+                    << "  Roll = " << r->id().roll() << std::endl;
         }
       }
     }
@@ -136,16 +137,16 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
     // 	 (&roll->topology());
 
     //        if (sids.find(detId) != sids.end())
-    // 	        st1 << "VERYBAD ";
-    //          st1 << "GeomDetUnit is of type " << detId.det() << " and raw id = " << id;
+    // 	 std::cout<<"VERYBAD ";
+    // //        std::cout << "GeomDetUnit is of type " << detId.det() << " and raw id = " << id;
 
-    //          int iw = std::cout.width(); // save current width
-    //          int ip = std::cout.precision(); // save current precision
+    //        int iw = std::cout.width(); // save current width
+    //        //       int ip = std::cout.precision(); // save current precision
 
-    //          edm::LogVerbatim("RPCGeometry") << st1.str() << "Parameters of roll# "
-    // 	                                        << std::setw( 4 ) << icount << std::endl;
-    //        st2 << std::setw(12) << id << std::dec << std::setw(12)
-    //            << id << std::dec << std::setw(iw) << detId;
+    //        std::cout << "Parameters of roll# " <<
+    // 	 std::setw( 4 ) << icount << std::endl;
+    //        std::cout<<std::setw(12) << id << std::dec << std::setw(12) << id << std::dec
+    // 		 << std::setw( iw ) << detId;
 
     //        const BoundSurface& bSurface = roll->surface();
 
@@ -171,12 +172,12 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
 
     //        int now = 9;
     //        int nop = 5;
-    //        edm::LogVerbatim("RPCGeometry") << st2.str() <<
-    //  	 std::setw( now ) << std::setprecision( nop ) << gx <<
-    //  	 std::setw( now ) << std::setprecision( nop ) << gy <<
-    //  	 std::setw( now ) << std::setprecision( nop ) << gz <<
-    //  	 std::setw( now ) << std::setprecision( nop ) << gz1 <<
-    //  	 std::setw( now ) << std::setprecision( nop ) << gz2 << std::endl;
+    // //        std::cout <<
+    // // 	 std::setw( now ) << std::setprecision( nop ) << gx <<
+    // // 	 std::setw( now ) << std::setprecision( nop ) << gy <<
+    // // 	 std::setw( now ) << std::setprecision( nop ) << gz <<
+    // // 	 std::setw( now ) << std::setprecision( nop ) << gz1 <<
+    // // 	 std::setw( now ) << std::setprecision( nop ) << gz2<<std::endl;
 
     //        // Global Phi of centre of RPCRoll
 
@@ -186,7 +187,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
 
     //        if ( fabs(cphiDeg) < 1.e-06 ) cphiDeg = 0.;
     //        //        int iphiDeg = static_cast<int>( cphiDeg );
-    //        //	edm::LogVerbatim("RPCGeometry") << "phi(0,0,0) = " << iphiDeg << " degrees";
+    //        //	std::cout << "phi(0,0,0) = " << iphiDeg << " degrees" << std::endl;
 
     //        int nStrips = roll->nstrips();
 
@@ -202,21 +203,21 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
     // 	     && detId.roll() == 1
     // 	     && detId.ring() == 0)
     // 	    ) {
-    // 	 edm::LogVerbatim("RPCGeometry") << "======================== Writing output file";
-    // 	 ofos << "Forward Detector " << roll->type().name() << " " << detId.region() << " z :" << detId << std::endl;
+    // 	 std::cout <<"======================== Writing output file"<< std::endl;
+    // 	 ofos<<"Forward Detector "<<roll->type().name()  <<" "<<detId.region()<<" z :"<<detId<<std::endl;
     // 	 for (unsigned int i=0;i<vlp.size();i++){
-    // 	   ofos << "lp=" << vlp[i] << " gp="<<roll->toGlobal(vlp[i]) << " pitch=" << roll->localPitch(vlp[i]);
+    // 	   ofos<< "lp="<<vlp[i]<<" gp="<<roll->toGlobal(vlp[i]) << " pitch="<<roll->localPitch(vlp[i]);
     // 	   if ( (i+1)%3 == 0 ) {
-    // 	     ofos << " " << std::endl;
+    // 	     ofos<<" "<<std::endl;
     // 	   }
     // 	 }
-    // 	 ofos << "            Navigating " << std::endl;
+    // 	 ofos<<"            Navigating "<<std::endl;
     // 	 LocalPoint edge1 = top_->localPosition(0.);
     // 	 LocalPoint edge2 = top_->localPosition((float)nStrips);
     // 	 float lsl1 = top_->localStripLength(edge1);
     // 	 float lsl2 = top_->localStripLength(edge2);
-    // 	 ofos <<" Local Point edge1 = " << edge1 << " StripLength=" << lsl1 << std::endl;
-    // 	 ofos <<" Local Point edge1 = " << edge2 << " StripLength=" << lsl2 << std::endl;
+    // 	 ofos <<" Local Point edge1 = "<<edge1<<" StripLength="<<lsl1<<std::endl;
+    // 	 ofos <<" Local Point edge1 = "<<edge2<<" StripLength="<<lsl2<<std::endl;
     // 	 float cslength = top_->localStripLength(lCentre);
     // 	 LocalPoint s1(0.,-cslength/2.,0.);
     // 	 LocalPoint s2(0.,cslength/2.,0.);
@@ -240,7 +241,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
     // // 	   std::cout <<std::endl;
     // 	 }
   }
-  ofos << std::endl;
+  std::cout << std::endl;
 
   // //       double cstrip1  = layer->centerOfStrip(1).phi();
   // //       double cstripN  = layer->centerOfStrip(nStrips).phi();
@@ -268,7 +269,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
 
   // //       now = 9;
   // //       nop = 4;
-  // //       ofos
+  // //       std::cout
   // // 	<< std::setw( now ) << std::setprecision( nop ) << cphiDeg
   // // 	<< std::setw( now ) << std::setprecision( nop ) << cstrip1
   // // 	<< std::setw( now ) << std::setprecision( nop ) << cstripN
@@ -305,7 +306,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
   // //       float lLGp = radToDeg * lowerLeftGlobal.phi();
 
   // //       now = 9;
-  // //       ofos
+  // //       std::cout
   // // 	<< std::setw( now ) << uRGp
   // // 	<< std::setw( now ) << uLGp
   // // 	<< std::setw( now ) << lRGp
@@ -313,7 +314,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
   // // 	<< std::endl;
 
   // //       // Reset the values we changed
-  // //       ofos << std::setprecision( ip ) << std::setw( iw );
+  // //       std::cout << std::setprecision( ip ) << std::setw( iw );
 
   //        sids.insert(detId);
   //      }
@@ -322,7 +323,7 @@ void RPCGeometryAnalyzer::analyze(const edm::Event& /*iEvent*/, const edm::Event
   // //   //   for (TrackingGeometry::DetTypeContainer::const_iterator it = pDD->detTypes().begin(); it != pDD->detTypes().end(); it ++){
   // //   //   }
 
-  edm::LogVerbatim("RPCGeometry") << dashedLine_ << " end";
+  std::cout << dashedLine_ << " end" << std::endl;
 }
 
 //define this as a plug-in

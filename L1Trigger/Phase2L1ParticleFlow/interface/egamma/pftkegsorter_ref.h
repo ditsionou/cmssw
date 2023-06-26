@@ -1,5 +1,5 @@
-#ifndef L1Trigger_Phase2L1ParticleFlow_egamma_pftkegsorter_ref_h
-#define L1Trigger_Phase2L1ParticleFlow_egamma_pftkegsorter_ref_h
+#ifndef FIRMWARE_PFTKEGSORTER_REF_H
+#define FIRMWARE_PFTKEGSORTER_REF_H
 
 #include <cstdio>
 #include <vector>
@@ -10,6 +10,10 @@
 #ifdef CMSSW_GIT_HASH
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #endif
+
+namespace edm {
+  class ParameterSet;
+}
 
 namespace l1ct {
   class PFTkEGSorterEmulator {
@@ -24,22 +28,9 @@ namespace l1ct {
 
 #endif
 
-    virtual ~PFTkEGSorterEmulator() {}
+    ~PFTkEGSorterEmulator(){};
 
     void setDebug(bool debug = true) { debug_ = debug; };
-
-    virtual void runPho(const std::vector<l1ct::PFInputRegion>& pfregions,
-                        const std::vector<l1ct::OutputRegion>& outregions,
-                        const std::vector<unsigned int>& region_index,
-                        std::vector<l1ct::EGIsoObjEmu>& eg_sorted_inBoard) {
-      run<l1ct::EGIsoObjEmu>(pfregions, outregions, region_index, eg_sorted_inBoard);
-    }
-    virtual void runEle(const std::vector<l1ct::PFInputRegion>& pfregions,
-                        const std::vector<l1ct::OutputRegion>& outregions,
-                        const std::vector<unsigned int>& region_index,
-                        std::vector<l1ct::EGIsoEleObjEmu>& eg_sorted_inBoard) {
-      run<l1ct::EGIsoEleObjEmu>(pfregions, outregions, region_index, eg_sorted_inBoard);
-    }
 
     template <typename T>
     void run(const std::vector<l1ct::PFInputRegion>& pfregions,
@@ -73,7 +64,7 @@ namespace l1ct {
       }
     }
 
-  protected:
+  private:
     unsigned int nObjToSort_, nObjSorted_;
     bool debug_;
 

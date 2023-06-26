@@ -16,7 +16,8 @@ namespace edm {
         table[SkipEvent] = "SkipEvent";
         table[FailPath] = "FailPath";
         return table;
-      }();
+      }
+      ();
       return static_cast<unsigned int>(code) < tab.size() ? tab[code] : "UnknownAction";
     }
   }  // namespace exception_actions

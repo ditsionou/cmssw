@@ -24,7 +24,6 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Utilities/interface/Likely.h"
-#include "FWCore/Utilities/interface/thread_safety_macros.h"
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <sstream>
@@ -110,11 +109,11 @@ namespace {
 
     ~ClusterFiller() override { printStat(); }
 
-    void fill(StripClusterizerAlgorithm::output_t::TSFastFiller& record) const override;
+    void fill(StripClusterizerAlgorithm::output_t::TSFastFiller& record) override;
 
   private:
-    CMS_THREAD_GUARD(done) mutable std::unique_ptr<sistrip::FEDBuffer> buffers[1024];
-    mutable std::atomic<sistrip::FEDBuffer*> done[1024];
+    std::unique_ptr<sistrip::FEDBuffer> buffers[1024];
+    std::atomic<sistrip::FEDBuffer*> done[1024];
 
     const FEDRawDataCollection& rawColl;
 
@@ -325,7 +324,7 @@ namespace {
   };
 }  // namespace
 
-void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller& record) const {
+void ClusterFiller::fill(StripClusterizerAlgorithm::output_t::TSFastFiller& record) {
   try {  // edmNew::CapacityExaustedException
     incReady();
 

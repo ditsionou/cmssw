@@ -188,9 +188,7 @@ extern struct {
 #define embed embed_
 
 extern "C" {
-extern struct {
-  int ipop;
-} popcorn_;
+extern struct { int ipop; } popcorn_;
 }
 #define popcorn popcorn_
 

@@ -65,6 +65,7 @@ from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIsoTrkProducerFilter_cff i
 # HCAL noise
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalNoise_cff import *
 # HCAL isolated bunch
+from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIsolatedBunchFilter_cff import *
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalIsolatedBunchSelector_cff import *
 # HCAL calibration with muons in HB/HE
 from Calibration.HcalAlCaRecoProducers.ALCARECOHcalCalHBHEMuonFilter_cff import *
@@ -143,6 +144,7 @@ pathALCARECOHcalCalIsoTrk = cms.Path(seqALCARECOHcalCalIsoTrk*ALCARECOHcalCalIso
 pathALCARECOHcalCalIsoTrkFilter = cms.Path(seqALCARECOHcalCalIsoTrkFilter)
 pathALCARECOHcalCalIsoTrkProducerFilter = cms.Path(seqALCARECOHcalCalIsoTrkProducerFilter)
 pathALCARECOHcalCalNoise = cms.Path(seqALCARECOHcalCalNoise)
+pathALCARECOHcalCalIsolatedBunchFilter = cms.Path(seqALCARECOHcalCalIsolatedBunchFilter)
 pathALCARECOHcalCalIsolatedBunchSelector = cms.Path(seqALCARECOHcalCalIsolatedBunchSelector*ALCARECOHcalCalIsolatedBunchDQM)
 pathALCARECOHcalCalHBHEMuonFilter = cms.Path(seqALCARECOHcalCalHBHEMuonFilter)
 pathALCARECOHcalCalHBHEMuonProducerFilter = cms.Path(seqALCARECOHcalCalHBHEMuonProducerFilter)
@@ -381,6 +383,15 @@ ALCARECOStreamHcalCalNoise = cms.FilteredStream(
 	paths  = (pathALCARECOHcalCalNoise),
 	content = OutALCARECOHcalCalNoise.outputCommands,
 	selectEvents = OutALCARECOHcalCalNoise.SelectEvents,
+	dataTier = cms.untracked.string('ALCARECO')
+	)
+
+ALCARECOStreamHcalCalIsolatedBunchFilter = cms.FilteredStream(
+	responsible = 'Sunanda Banerjee',
+	name = 'HcalCalIsolatedBunchFilter',
+	paths  = (pathALCARECOHcalCalIsolatedBunchFilter),
+	content = OutALCARECOHcalCalIsolatedBunchFilter.outputCommands,
+	selectEvents = OutALCARECOHcalCalIsolatedBunchFilter.SelectEvents,
 	dataTier = cms.untracked.string('ALCARECO')
 	)
 

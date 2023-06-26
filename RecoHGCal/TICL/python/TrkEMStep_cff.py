@@ -10,6 +10,7 @@ filteredLayerClustersTrkEM = _filteredLayerClustersProducer.clone(
     clusterFilter = "ClusterFilterByAlgoAndSizeAndLayerRange",
     min_cluster_size = 3, # inclusive
     max_layerId = 30, # inclusive
+    algo_number = 8,
     iteration_label = "TrkEM"
 )
 
@@ -47,7 +48,7 @@ filteredLayerClustersHFNoseTrkEM = filteredLayerClustersTrkEM.clone(
     LayerClusters = 'hgcalLayerClustersHFNose',
     LayerClustersInputMask = "hgcalLayerClustersHFNose:InitialLayerClustersMask",
     min_cluster_size = 3, # inclusive
-    algo_number = [9], # reco::CaloCluster::hfnose
+    algo_number = 9,
     iteration_label = "TrkEMn"
 )
 

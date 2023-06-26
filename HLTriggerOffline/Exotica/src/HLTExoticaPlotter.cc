@@ -247,15 +247,7 @@ void HLTExoticaPlotter::bookHist(DQMStore::IBooker &iBooker,
   }
 
   h->Sumw2();
-
-  if (source == "gen") {
-    if (objType != "refittedStandAloneMuons") {
-      _elements[name] = iBooker.book1D(name, h);
-    }
-  } else {
-    _elements[name] = iBooker.book1D(name, h);
-  }
-
+  _elements[name] = iBooker.book1D(name, h);
   //    LogDebug("ExoticaValidation") << "                        booked histo
   //    with name " << name << "\n"
   //				  << "                        at location " <<
@@ -273,14 +265,6 @@ void HLTExoticaPlotter::fillHist(const bool &passTrigger,
   std::string name = source + objType + variable + "_" + _hltPath;
 
   LogDebug("ExoticaValidation") << "In HLTExoticaPlotter::fillHist()" << name << " " << value;
-
-  if (source == "gen") {
-    if (objType != "refittedStandAloneMuons") {
-      _elements[name]->Fill(value);
-    }
-  } else {
-    _elements[name]->Fill(value);
-  }
-
+  _elements[name]->Fill(value);
   LogDebug("ExoticaValidation") << "In HLTExoticaPlotter::fillHist()" << name << " worked";
 }

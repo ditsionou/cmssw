@@ -960,6 +960,11 @@ void prepareMagneticFieldGrid::fillFromFileSpecial(const std::string &name) {
         }
       }
     }
+    int nGoodInd = 0;
+    for (int i = 0; i < 3; ++i) {
+      if (goodIndex[i])
+        ++nGoodInd;
+    }
     // common part of missing coordiate(s) recovery (1 or 2 missing)
     if (nEasy > 0) {
       // sort without resetting of indices

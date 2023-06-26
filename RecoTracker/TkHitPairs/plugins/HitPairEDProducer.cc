@@ -51,7 +51,6 @@ namespace {
     edm::RunningAverage localRA_;
     const unsigned int maxElement_;
     const unsigned int maxElementTotal_;
-    const bool putEmptyIfMaxElementReached_;
 
     HitPairGeneratorFromLayerPair generator_;
     std::vector<unsigned> layerPairBegins_;
@@ -59,7 +58,6 @@ namespace {
   ImplBase::ImplBase(const edm::ParameterSet& iConfig, edm::ConsumesCollector iC)
       : maxElement_(iConfig.getParameter<unsigned int>("maxElement")),
         maxElementTotal_(iConfig.getParameter<unsigned int>("maxElementTotal")),
-        putEmptyIfMaxElementReached_(iConfig.getParameter<bool>("putEmptyIfMaxElementReached")),
         generator_(
             iC, 0, 1, nullptr, maxElement_),  // these indices are dummy, TODO: cleanup HitPairGeneratorFromLayerPair
         layerPairBegins_(iConfig.getParameter<std::vector<unsigned>>("layerPairs")) {
@@ -107,16 +105,7 @@ namespace {
         auto hitCachePtr = std::get<0>(hitCachePtr_filler_ihd);
 
         for (SeedingLayerSetsHits::SeedingLayerSet layerSet : regionLayers.layerPairs()) {
-          auto doubletsOpt = generator_.doublets(region, iEvent, iSetup, layerSet, *hitCachePtr);
-          if (not doubletsOpt) {
-            if (putEmptyIfMaxElementReached_) {
-              putEmpty(iEvent, regionsLayers);
-              return;
-            } else {
-              continue;
-            }
-          }
-          auto& doublets = *doubletsOpt;
+          auto doublets = generator_.doublets(region, iEvent, iSetup, layerSet, *hitCachePtr);
           LogTrace("HitPairEDProducer") << " created " << doublets.size() << " doublets for layers "
                                         << layerSet[0].index() << "," << layerSet[1].index();
           if (doublets.empty())
@@ -124,7 +113,11 @@ namespace {
           nDoublets += doublets.size();
           if (nDoublets >= maxElementTotal_) {
             edm::LogError("TooManyPairs") << "number of total pairs exceed maximum, no pairs produced";
-            putEmpty(iEvent, regionsLayers);
+            auto seedingHitSetsProducerDummy = T_SeedingHitSets(&localRA_);
+            auto intermediateHitDoubletsProducerDummy =
+                T_IntermediateHitDoublets(regionsLayers.seedingLayerSetsHitsPtr());
+            seedingHitSetsProducerDummy.putEmpty(iEvent);
+            intermediateHitDoubletsProducerDummy.putEmpty(iEvent);
             return;
           }
           seedingHitSetsProducer.fill(std::get<1>(hitCachePtr_filler_shs), doublets);
@@ -137,14 +130,6 @@ namespace {
     }
 
   private:
-    template <typename T>
-    void putEmpty(edm::Event& iEvent, T& regionsLayers) {
-      auto seedingHitSetsProducerDummy = T_SeedingHitSets(&localRA_);
-      auto intermediateHitDoubletsProducerDummy = T_IntermediateHitDoublets(regionsLayers.seedingLayerSetsHitsPtr());
-      seedingHitSetsProducerDummy.putEmpty(iEvent);
-      intermediateHitDoubletsProducerDummy.putEmpty(iEvent);
-    }
-
     T_RegionLayers regionsLayers_;
   };
 
@@ -519,11 +504,6 @@ void HitPairEDProducer::fillDescriptions(edm::ConfigurationDescriptions& descrip
   desc.add<bool>("produceIntermediateHitDoublets", false);
   desc.add<unsigned int>("maxElement", 1000000);
   desc.add<unsigned int>("maxElementTotal", 50000000);
-  desc.add<bool>("putEmptyIfMaxElementReached", false)
-      ->setComment(
-          "If set to true (default is 'false'), abort processing and put empty data products also if any layer pair "
-          "yields at least maxElement doublets, in addition to aborting processing if the sum of doublets from all "
-          "layer pairs reaches maxElementTotal.");
   desc.add<std::vector<unsigned>>("layerPairs", std::vector<unsigned>{0})
       ->setComment("Indices to the pairs of consecutive layers, i.e. 0 means (0,1), 1 (1,2) etc.");
 

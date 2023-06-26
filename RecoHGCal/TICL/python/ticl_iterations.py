@@ -7,7 +7,7 @@ from RecoLocalCalo.HGCalRecProducers.HGCalRecHit_cfi import *
 # (for now until global reco is going with some sort of clustering)
 from RecoParticleFlow.PFClusterProducer.particleFlowRecHitHGC_cff import *
 from RecoParticleFlow.PFClusterProducer.particleFlowClusterHGC_cfi import *
-from RecoLocalCalo.HGCalRecProducers.hgcalMergeLayerClusters_cff import hgcalMergeLayerClusters
+from RecoLocalCalo.HGCalRecProducers.hgcalLayerClusters_cff import hgcalLayerClusters
 from RecoLocalCalo.HGCalRecProducers.hgcalMultiClusters_cfi import hgcalMultiClusters
 
 from RecoHGCal.TICL.ticlSeedingRegionProducer_cfi import ticlSeedingRegionProducer
@@ -33,6 +33,7 @@ def TICL_iterations_withReco(process):
 
   process.filteredLayerClustersTrk = filteredLayerClustersProducer.clone(
     clusterFilter = "ClusterFilterByAlgo",
+    algo_number = 8,
     iteration_label = "Trk"
   )
 
@@ -51,6 +52,7 @@ def TICL_iterations_withReco(process):
 
   process.filteredLayerClustersMIP = filteredLayerClustersProducer.clone(
       clusterFilter = "ClusterFilterBySize",
+      algo_number = 8,
       max_cluster_size = 2, # inclusive
       iteration_label = "MIP"
   )
@@ -68,6 +70,7 @@ def TICL_iterations_withReco(process):
   process.filteredLayerClusters = filteredLayerClustersProducer.clone(
       clusterFilter = "ClusterFilterByAlgoAndSize",
       min_cluster_size = 2,
+      algo_number = 8,
       iteration_label = "algo8",
       LayerClustersInputMask = "trackstersMIP"
   )
@@ -117,7 +120,7 @@ def TICL_iterations_withReco(process):
   process.hgcalValidation.insert(-1, process.ticlPFValidation)
   
   if getattr(process,'hgcalValidator'):
-    process.hgcalValidator.label_lcl = "hgcalMergeLayerClusters"
+    process.hgcalValidator.label_lcl = "hgcalLayerClusters"
     process.hgcalValidator.label_mcl = ["multiClustersFromTrackstersEM:MultiClustersFromTracksterByCA", "multiClustersFromTrackstersHAD:MultiClustersFromTracksterByCA"]
     process.hgcalValidator.domulticlustersPlots = True
     
@@ -135,6 +138,7 @@ def TICL_iterations(process):
 
   process.filteredLayerClustersMIP = filteredLayerClustersProducer.clone(
       clusterFilter = "ClusterFilterBySize",
+      algo_number = 8,
       max_cluster_size = 2, # inclusive
       iteration_label = "MIP"
   )
@@ -150,6 +154,7 @@ def TICL_iterations(process):
   process.filteredLayerClusters = filteredLayerClustersProducer.clone(
       clusterFilter = "ClusterFilterByAlgoAndSize",
       min_cluster_size = 2,
+      algo_number = 8,
       iteration_label = "algo8"
   )
 
@@ -165,11 +170,11 @@ def TICL_iterations(process):
 
   process.HGCalUncalibRecHit = HGCalUncalibRecHit
   process.HGCalRecHit = HGCalRecHit
-  process.hgcalMergeLayerClusters = hgcalMergeLayerClusters
+  process.hgcalLayerClusters = hgcalLayerClusters
   process.hgcalMultiClusters = hgcalMultiClusters
   process.TICL_Task = cms.Task(process.HGCalUncalibRecHit,
       process.HGCalRecHit,
-      process.hgcalMergeLayerClusters,
+      process.hgcalLayerClusters,
       process.filteredLayerClustersMIP,
       process.ticlLayerTileProducer,
       process.ticlSeedingGlobal,

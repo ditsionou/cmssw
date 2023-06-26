@@ -11,3 +11,4 @@
 <use name="CondFormats/DataRecord"/>
 <use name="CondFormats/BeamSpotObjects"/>
 <use name="CondFormats/PPSObjects"/>
+<use name="CondCore/DBOutputService"/>

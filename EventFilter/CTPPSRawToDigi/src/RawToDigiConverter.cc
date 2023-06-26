@@ -25,8 +25,9 @@ using namespace edm;
 
 RawToDigiConverter::RawToDigiConverter(const edm::ParameterSet &conf)
     : verbosity(conf.getUntrackedParameter<unsigned int>("verbosity", 0)),
-      printErrorSummary(conf.getUntrackedParameter<bool>("printErrorSummary")),
-      printUnknownFrameSummary(conf.getUntrackedParameter<bool>("printUnknownFrameSummary")),
+      olderTotemT2FileTest(conf.getUntrackedParameter<unsigned int>("useOlderT2TestFile", 0)),
+      printErrorSummary(conf.getUntrackedParameter<unsigned int>("printErrorSummary", 1)),
+      printUnknownFrameSummary(conf.getUntrackedParameter<unsigned int>("printUnknownFrameSummary", 1)),
 
       testFootprint(conf.getParameter<unsigned int>("testFootprint")),
       testCRC(conf.getParameter<unsigned int>("testCRC")),
@@ -38,9 +39,7 @@ RawToDigiConverter::RawToDigiConverter(const edm::ParameterSet &conf)
       BC_min(conf.getUntrackedParameter<unsigned int>("BC_min", 10)),
 
       EC_fraction(conf.getUntrackedParameter<double>("EC_fraction", 0.6)),
-      BC_fraction(conf.getUntrackedParameter<double>("BC_fraction", 0.6)),
-
-      olderTotemT2FileTest(conf.getParameter<bool>("useOlderT2TestFile")) {}
+      BC_fraction(conf.getUntrackedParameter<double>("BC_fraction", 0.6)) {}
 
 void RawToDigiConverter::runCommon(const VFATFrameCollection &input,
                                    const TotemDAQMapping &mapping,
@@ -81,13 +80,8 @@ void RawToDigiConverter::runCommon(const VFATFrameCollection &input,
     record.status.setNumberOfClustersSpecified(record.frame->isNumberOfClustersPresent());
     record.status.setNumberOfClusters(record.frame->getNumberOfClusters());
 
-    // check for T2 payload bits
-    int rawT2 = fr.Position().getRawPosition();
-    bool isT2Frame = (rawT2 >> 18);
-
     // check footprint
-    if (((!isT2Frame) && testFootprint != tfNoTest && !record.frame->checkFootprint()) ||
-        (isT2Frame && testFootprint != tfNoTest && !record.frame->checkFootprintT2())) {
+    if (testFootprint != tfNoTest && !record.frame->checkFootprint()) {
       problemsPresent = true;
 
       if (verbosity > 0)
@@ -100,8 +94,7 @@ void RawToDigiConverter::runCommon(const VFATFrameCollection &input,
     }
 
     // check CRC
-    if (((!isT2Frame) && (testCRC != tfNoTest && !record.frame->checkCRC())) ||
-        (isT2Frame && testCRC != tfNoTest && !record.frame->checkCRCT2())) {
+    if (testCRC != tfNoTest && !record.frame->checkCRC()) {
       problemsPresent = true;
 
       if (verbosity > 0)
@@ -130,8 +123,6 @@ void RawToDigiConverter::runCommon(const VFATFrameCollection &input,
     if (verbosity > 0 && problemsPresent) {
       string message = (stopProcessing) ? "(and will be dropped)" : "(but will be used though)";
       if (verbosity > 2) {
-        if (isT2Frame && verbosity > 3)
-          record.frame->PrintT2();
         ees << "  Frame at " << fr.Position() << " seems corrupted " << message << ":" << endl;
         ees << fes.rdbuf();
       } else
@@ -404,7 +395,8 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
   int allT2 = 0;
   int goodT2 = 0;
   int foundT2 = 0;
-  const int T2shiftOld = (olderTotemT2FileTest ? 8 : 0);  //Run on TOTEM T2 test file (ver 2.1) or final T2 data ver 2.3
+  const int T2shiftOld =
+      (olderTotemT2FileTest > 0 ? 8 : 0);  //Run on TOTEM T2 test file (ver 2.1) or final T2 data ver 2.2
 
   // second loop over data
   for (auto &p : records) {
@@ -439,8 +431,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
               .emplace_back(hw_id,
                             totem::nt2::vfat::channelMarker(*record.frame, frame_id),
                             totem::nt2::vfat::leadingEdgeTime(*record.frame, frame_id),
-                            totem::nt2::vfat::trailingEdgeTime(*record.frame, frame_id),
-                            totem::nt2::vfat::statusMarker(*record.frame));
+                            totem::nt2::vfat::trailingEdgeTime(*record.frame, frame_id));
           foundT2++;
         } else {
           if (verbosity > 2)

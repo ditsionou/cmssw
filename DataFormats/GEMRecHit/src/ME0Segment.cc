@@ -68,7 +68,6 @@ ME0Segment::~ME0Segment() {}
 
 std::vector<const TrackingRecHit*> ME0Segment::recHits() const {
   std::vector<const TrackingRecHit*> pointersOfRecHits;
-  pointersOfRecHits.reserve(theME0RecHits.size());
   for (const auto& rh : theME0RecHits)
     pointersOfRecHits.push_back(&rh);
   return pointersOfRecHits;
@@ -76,7 +75,6 @@ std::vector<const TrackingRecHit*> ME0Segment::recHits() const {
 
 std::vector<TrackingRecHit*> ME0Segment::recHits() {
   std::vector<TrackingRecHit*> pointersOfRecHits;
-  pointersOfRecHits.reserve(theME0RecHits.size());
   for (auto& rh : theME0RecHits)
     pointersOfRecHits.push_back(&rh);
   return pointersOfRecHits;

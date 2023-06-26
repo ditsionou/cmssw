@@ -57,7 +57,6 @@ to have dictionaries.
 #include "FWCore/Utilities/interface/WrappedClassName.h"
 
 #include "TClass.h"
-#include "TClassEdit.h"
 #include "THashTable.h"
 
 #include <algorithm>
@@ -326,12 +325,6 @@ namespace edm {
     TypeWithDict typeWithDict(typeID.typeInfo());
 
     if (!typeWithDict.isClass()) {
-      return true;
-    }
-
-    // No need to check into base classes of standard library
-    // classes.
-    if (TClassEdit::IsStdClass(typeWithDict.name().c_str())) {
       return true;
     }
 

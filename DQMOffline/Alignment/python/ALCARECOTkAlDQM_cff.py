@@ -83,8 +83,7 @@ ALCARECOTkAlDiMuonAndVertexVtxDQM = DQMOffline.Alignment.DiMuonVertexMonitor_cfi
 
 ALCARECOTkAlDiMuonMassBiasDQM = DQMOffline.Alignment.DiMuonMassBiasMonitor_cfi.DiMuonMassBiasMonitor.clone(
     muonTracks = 'ALCARECO'+__trackCollName,
-    FolderName = "AlCaReco/"+__selectionName,
-    DiMuMassConfig = dict(maxDeltaEta = 3.5)
+    FolderName = "AlCaReco/"+__selectionName
 )
 
 ALCARECOTkAlDiMuonAndVertexDQM = cms.Sequence(ALCARECOTkAlDiMuonAndVertexTkAlDQM + ALCARECOTkAlDiMuonAndVertexVtxDQM + ALCARECOTkAlDiMuonMassBiasDQM)

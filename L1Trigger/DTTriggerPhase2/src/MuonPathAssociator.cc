@@ -108,7 +108,7 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
             SL3metaPrimitives.push_back(metaprimitiveIt);
         }
 
-        if (SL1metaPrimitives.empty() or SL3metaPrimitives.empty())
+        if (SL1metaPrimitives.empty() and SL3metaPrimitives.empty())
           continue;
 
         if (debug_)
@@ -119,12 +119,12 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
         bool at_least_one_SL1_confirmation = false;
         bool at_least_one_SL3_confirmation = false;
 
-        vector<bool> useFitSL1;
+        bool useFitSL1[SL1metaPrimitives.size()];
         for (unsigned int i = 0; i < SL1metaPrimitives.size(); i++)
-          useFitSL1.push_back(false);
-        vector<bool> useFitSL3;
+          useFitSL1[i] = false;
+        bool useFitSL3[SL3metaPrimitives.size()];
         for (unsigned int i = 0; i < SL3metaPrimitives.size(); i++)
-          useFitSL3.push_back(false);
+          useFitSL3[i] = false;
 
         //SL1-SL3
         vector<metaPrimitive> chamberMetaPrimitives;
@@ -986,9 +986,9 @@ void MuonPathAssociator::correlateMPaths(edm::Handle<DTDigiCollection> dtdigis,
 }
 
 void MuonPathAssociator::removeSharingFits(vector<metaPrimitive> &chamberMPaths, vector<metaPrimitive> &allMPaths) {
-  vector<bool> useFit;
+  bool useFit[chamberMPaths.size()];
   for (unsigned int i = 0; i < chamberMPaths.size(); i++) {
-    useFit.push_back(true);
+    useFit[i] = true;
   }
   for (unsigned int i = 0; i < chamberMPaths.size(); i++) {
     if (debug_)

@@ -20,7 +20,6 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 //--- for RecHits
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
@@ -40,7 +39,7 @@ void TestAssociator::analyze(const edm::Event& e, const edm::EventSetup& es) {
   int pixelcounter = 0;
   int stripcounter = 0;
 
-  edm::LogVerbatim("TrackAssociator") << " === TestAssociator ";
+  cout << " === TestAssociator " << endl;
 
   // Get inputs
   edm::Handle<SiStripMatchedRecHit2DCollection> rechitsmatched;
@@ -78,7 +77,7 @@ void TestAssociator::analyze(const edm::Event& e, const edm::EventSetup& es) {
   if (!doPixel_ && !doStrip_)
     throw edm::Exception(errors::Configuration, "Strip and pixel association disabled");
 
-  edm::LogVerbatim("TrackAssociator") << " === TestAssociator end\n ";
+  cout << " === TestAssociator end " << endl << endl;
 }
 
 template <typename rechitType>
@@ -93,9 +92,10 @@ void TestAssociator::printRechitSimhit(const edm::Handle<edmNew::DetSetVector<re
     uint32_t myid = detid.rawId();
     // Loop over the RecHits in this sensor
     for (auto const& rechit : theDetSet) {
+      int i = 0;
       hitCounter++;
-      edm::LogVerbatim("TrackAssociator") << hitCounter << ") " << rechitName << " RecHit subDet, DetId "
-                                          << detid.subdetId() << ", " << myid << " Pos = " << rechit.localPosition();
+      cout << hitCounter << ") " << rechitName << " RecHit subDet, DetId " << detid.subdetId() << ", " << myid
+           << " Pos = " << rechit.localPosition() << endl;
       bool isPixel = false;
       float mindist = 999999;
       float dist, distx, disty;
@@ -106,8 +106,8 @@ void TestAssociator::printRechitSimhit(const edm::Handle<edmNew::DetSetVector<re
       if (!matched.empty()) {
         // Print out the SimHit positions and residuals
         for (auto const& m : matched) {
-          edm::LogVerbatim("TrackAssociator")
-              << " simtrack ID = " << m.trackId() << "                            Simhit Pos = " << m.localPosition();
+          cout << " simtrack ID = " << m.trackId() << "                            Simhit Pos = " << m.localPosition()
+               << endl;
           // Seek the smallest residual
           if (const SiPixelRecHit* dummy = dynamic_cast<const SiPixelRecHit*>(&rechit)) {
             isPixel = true;
@@ -121,15 +121,15 @@ void TestAssociator::printRechitSimhit(const edm::Handle<edmNew::DetSetVector<re
             closest = m;
           }
         }
-        std::ostringstream st1;
-        st1 << " Closest Simhit = " << closest.localPosition();
+        cout << " Closest Simhit = " << closest.localPosition();
         if (isPixel) {
           distx = fabs(rechit.localPosition().x() - closest.localPosition().x());
           disty = fabs(rechit.localPosition().y() - closest.localPosition().y());
-          st1 << ", diff(x,y) = (" << distx << ", " << disty << ")";
+          cout << ", diff(x,y) = (" << distx << ", " << disty << ")";
         }
-        edm::LogVerbatim("TrackAssociator") << st1.str() << ", |diff| = " << mindist;
+        cout << ", |diff| = " << mindist << endl;
       }
+      ++i;
     }
   }  // end loop on detSets
 }

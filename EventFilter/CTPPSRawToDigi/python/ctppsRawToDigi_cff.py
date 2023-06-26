@@ -52,8 +52,8 @@ totemRPRawToDigi.rawDataTag = cms.InputTag("rawDataCollector")
 # various error/warning/info output may be enabled with these flags
 #  totemRPRawToDigi.RawUnpacking.verbosity = 1
 #  totemRPRawToDigi.RawToDigi.verbosity = 1 # or higher number for more output
-#  totemRPRawToDigi.RawToDigi.printErrorSummary = True
-#  totemRPRawToDigi.RawToDigi.printUnknownFrameSummary = True
+#  totemRPRawToDigi.RawToDigi.printErrorSummary = 1
+#  totemRPRawToDigi.RawToDigi.printUnknownFrameSummary = 1
 
 # ---------- diamonds ----------
 totemDAQMappingESSourceXML_TimingDiamond = cms.ESSource("TotemDAQMappingESSourceXML",
@@ -102,7 +102,7 @@ totemDAQMappingESSourceXML_TimingDiamond = cms.ESSource("TotemDAQMappingESSource
 )
 
 from EventFilter.CTPPSRawToDigi.ctppsDiamondRawToDigi_cfi import ctppsDiamondRawToDigi
-ctppsDiamondRawToDigi.rawDataTag = "rawDataCollector"
+ctppsDiamondRawToDigi.rawDataTag = cms.InputTag("rawDataCollector")
 
 # ---------- Totem Timing ----------
 totemDAQMappingESSourceXML_TotemTiming = cms.ESSource("TotemDAQMappingESSourceXML",
@@ -132,16 +132,16 @@ totemDAQMappingESSourceXML_TotemTiming = cms.ESSource("TotemDAQMappingESSourceXM
 )
 
 from EventFilter.CTPPSRawToDigi.totemTimingRawToDigi_cfi import totemTimingRawToDigi
-totemTimingRawToDigi.rawDataTag = "rawDataCollector"
+totemTimingRawToDigi.rawDataTag = cms.InputTag("rawDataCollector")
 
 # ---------- Totem nT2 ----------
 from CalibPPS.ESProducers.totemT2DAQMapping_cff import totemDAQMappingESSourceXML as totemDAQMappingESSourceXML_TotemT2
 from EventFilter.CTPPSRawToDigi.totemT2Digis_cfi import totemT2Digis
-totemT2Digis.rawDataTag = "rawDataCollector"
+totemT2Digis.rawDataTag = cms.InputTag("rawDataCollector")
 
 # ---------- pixels ----------
 from EventFilter.CTPPSRawToDigi.ctppsPixelDigis_cfi import ctppsPixelDigis
-ctppsPixelDigis.inputLabel = "rawDataCollector"
+ctppsPixelDigis.inputLabel = cms.InputTag("rawDataCollector")
 
 from Configuration.Eras.Modifier_ctpps_2016_cff import ctpps_2016
 from Configuration.Eras.Modifier_ctpps_2017_cff import ctpps_2017

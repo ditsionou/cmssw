@@ -14,7 +14,5 @@ DQMStore = cms.Service("DQMStore",
     assertLegacySafe  = cms.untracked.bool(False),
     # UNUSED: historical HLT configs expect this option to be present, so it
     # remains here, even though the DQMStore does not use it any more.
-    enableMultiThread = cms.untracked.bool(True),
-    # Online mode
-    onlineMode = cms.untracked.bool(False)
+    enableMultiThread = cms.untracked.bool(True)
 )

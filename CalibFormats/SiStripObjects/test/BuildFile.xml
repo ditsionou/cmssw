@@ -14,5 +14,3 @@
   <use name="CalibFormats/SiStripObjects"/>
   <use name="cppunit"/>
 </bin>
-
-<test name="testSiStripHashedDetId" command="testSiStripHashedDetId.sh"/>

@@ -29,7 +29,6 @@ Created: August 2009
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "CondFormats/EcalObjects/interface/EcalChannelStatus.h"
-#include "CondFormats/EcalObjects/interface/EcalPFRecHitThresholds.h"
 
 #include "Calibration/IsolatedParticles/interface/MatrixECALDetIds.h"
 #include "RecoCaloTools/Navigation/interface/CaloNavigator.h"
@@ -129,18 +128,6 @@ namespace spr {
                                       double eeThr = -100,
                                       double tMin = -500,
                                       double tMax = 500,
-                                      bool debug = false);
-
-  std::pair<double, bool> eECALmatrix(const DetId& detId,
-                                      edm::Handle<EcalRecHitCollection>& hitsEB,
-                                      edm::Handle<EcalRecHitCollection>& hitsEE,
-                                      const EcalChannelStatus& chStatus,
-                                      const CaloGeometry* geo,
-                                      const CaloTopology* caloTopology,
-                                      const EcalSeverityLevelAlgo* sevlv,
-                                      const EcalPFRecHitThresholds* eThr,
-                                      int ieta,
-                                      int iphi,
                                       bool debug = false);
 
   // returns vector of hits in NxN matrix

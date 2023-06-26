@@ -95,8 +95,6 @@ process.testassociator = cms.EDAnalyzer("TestAssociator",
 # process.load("SimTracker.TrackerHitAssociation.test.messageLoggerDebug_cff")
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 1
-process.MessageLogger.cerr.FwkReport.reportEvery = 1
-process.MessageLogger.TrackAssociator = dict()
 
 # Number of events (-1 = all)
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )

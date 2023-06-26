@@ -38,16 +38,9 @@ namespace edm {
     }
 
     template <typename... Args>
-    MessageSender& format(fmt::format_string<Args...> format, Args&&... args) {
+    MessageSender& format(std::string_view fmt, Args const&... args) {
       if (valid())
-        errorobj_p->format(std::move(format), std::forward<Args>(args)...);
-      return *this;
-    }
-
-    template <typename... Args>
-    MessageSender& vformat(std::string_view fmt, fmt::format_args args) {
-      if (valid())
-        errorobj_p->vformat(fmt, std::move(args));
+        errorobj_p->format(fmt, args...);
       return *this;
     }
 

@@ -24,7 +24,7 @@ namespace ticl {
     virtual ~ClusterFilterBase(){};
 
     virtual void filter(const std::vector<reco::CaloCluster>& layerClusters,
-                        const TICLClusterFilterMask& mask,
+                        const HgcalClusterFilterMask& mask,
                         std::vector<float>& layerClustersMask,
                         hgcal::RecHitTools& rhtools) const = 0;
   };

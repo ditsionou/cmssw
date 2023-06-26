@@ -10,6 +10,7 @@ from RecoHGCal.TICL.filteredLayerClustersProducer_cfi import filteredLayerCluste
 filteredLayerClustersTrk = _filteredLayerClustersProducer.clone(
     clusterFilter = "ClusterFilterByAlgoAndSize",
     min_cluster_size = 3, # inclusive
+    algo_number = 8,
     LayerClustersInputMask = 'ticlTrackstersEM',
     iteration_label = "Trk"
 )
@@ -45,7 +46,7 @@ filteredLayerClustersHFNoseTrk = filteredLayerClustersTrk.clone(
     LayerClusters = 'hgcalLayerClustersHFNose',
     LayerClustersInputMask = 'ticlTrackstersHFNoseEM',
     min_cluster_size = 2, # inclusive
-    algo_number = [9], # reco::CaloCluster::hfnose
+    algo_number = 9,
     iteration_label = "Trkn"
 )
 

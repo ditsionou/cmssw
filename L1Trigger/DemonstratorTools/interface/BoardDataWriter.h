@@ -37,9 +37,6 @@ namespace l1t::demo {
                     const std::map<LinkId, std::vector<size_t>>&,
                     const std::map<std::string, ChannelSpec>&);
 
-    // Set ID string that's written at start of board data files
-    void setBoardDataFileID(const std::string&);
-
     void addEvent(const EventData& data);
 
     // If there are events that have not been written to file, forces creation of a board data file containing them
@@ -52,9 +49,6 @@ namespace l1t::demo {
     void resetBoardData();
 
     FileFormat fileFormat_;
-
-    // ID string that's written at start of board data files
-    std::string boardDataFileID_;
 
     std::function<std::string(const size_t)> filePathGen_;
 

@@ -6,7 +6,6 @@
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
 #include "FWCore/ServiceRegistry/interface/ActivityRegistry.h"
-#include "FWCore/ServiceRegistry/interface/SystemBounds.h"
 #include "FWCore/ServiceRegistry/interface/ProcessContext.h"
 #include "FWCore/Utilities/interface/Exception.h"
 
@@ -63,9 +62,6 @@ TritonService::TritonService(const edm::ParameterSet& pset, edm::ActivityRegistr
       startedFallback_(false),
       pid_(std::to_string(::getpid())) {
   //module construction is assumed to be serial (correct at the time this code was written)
-
-  areg.watchPreallocate(this, &TritonService::preallocate);
-
   areg.watchPreModuleConstruction(this, &TritonService::preModuleConstruction);
   areg.watchPostModuleConstruction(this, &TritonService::postModuleConstruction);
   areg.watchPreModuleDestruction(this, &TritonService::preModuleDestruction);
@@ -138,10 +134,6 @@ TritonService::TritonService(const edm::ParameterSet& pset, edm::ActivityRegistr
   }
   if (verbose_)
     edm::LogInfo("TritonService") << msg;
-}
-
-void TritonService::preallocate(edm::service::SystemBounds const& bounds) {
-  numberOfThreads_ = bounds.maxNumberOfThreads();
 }
 
 void TritonService::preModuleConstruction(edm::ModuleDescription const& desc) {
@@ -248,8 +240,6 @@ void TritonService::preBeginJob(edm::PathsAndConsumesOfModulesBase const&, edm::
   for (const auto& [modelName, model] : unservedModels_) {
     fallbackOpts_.command += " -m " + model.path;
   }
-  std::string thread_string = " -I " + std::to_string(numberOfThreads_);
-  fallbackOpts_.command += thread_string;
   if (!fallbackOpts_.imageName.empty())
     fallbackOpts_.command += " -i " + fallbackOpts_.imageName;
   if (!fallbackOpts_.sandboxName.empty())

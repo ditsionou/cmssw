@@ -11,10 +11,7 @@ process.maxEvents = cms.untracked.PSet(
 )
 process.source = cms.Source("EmptySource")
 
-process.load('FWCore.MessageLogger.MessageLogger_cfi')
-
-if hasattr(process,'MessageLogger'):
-    process.MessageLogger.RPCGeometry=dict()
+process.MessageLogger = cms.Service("MessageLogger")
 
 process.test1 = cms.EDAnalyzer("RPCGEO")
 process.test2 = cms.EDAnalyzer("RPCGeometryAnalyzer")

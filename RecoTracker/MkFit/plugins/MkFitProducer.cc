@@ -18,6 +18,7 @@
 #include "RecoTracker/Record/interface/TrackerRecoGeometryRecord.h"
 
 // mkFit includes
+#include "RecoTracker/MkFitCore/interface/ConfigWrapper.h"
 #include "RecoTracker/MkFitCMS/interface/LayerNumberConverter.h"
 #include "RecoTracker/MkFitCMS/interface/runFunctions.h"
 #include "RecoTracker/MkFitCore/interface/IterationConfig.h"
@@ -99,6 +100,7 @@ MkFitProducer::MkFitProducer(edm::ParameterSet const& iConfig)
 
   // TODO: what to do when we have multiple instances of MkFitProducer in a job?
   mkfit::MkBuilderWrapper::populate();
+  mkfit::ConfigWrapper::initializeForCMSSW();
 }
 
 void MkFitProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

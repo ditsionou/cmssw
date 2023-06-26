@@ -22,8 +22,6 @@ namespace l1t::demo {
 
     const std::string& name() const;
 
-    void name(const std::string& aName);
-
     std::map<size_t, Channel>::const_iterator begin() const;
 
     std::map<size_t, Channel>::iterator begin();

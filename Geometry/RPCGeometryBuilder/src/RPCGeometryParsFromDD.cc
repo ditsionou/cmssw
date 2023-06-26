@@ -80,7 +80,7 @@ void RPCGeometryParsFromDD::buildGeometry(DDFilteredView& fview,
       }
     }
     if (nStrips == 0)
-      edm::LogVerbatim("RPCGeometryParsFromDD") << "No strip found!!";
+      std::cout << "No strip found!!" << std::endl;
 
     const std::vector<double> dpar = fview.logicalPart().solid().parameters();
 

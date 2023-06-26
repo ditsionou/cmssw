@@ -7,8 +7,6 @@
 
 namespace mkfit {
 
-  class PropagationFlags;
-
   //==============================================================================
   // MkBase
   //==============================================================================
@@ -28,7 +26,7 @@ namespace mkfit {
 
     //----------------------------------------------------------------------------
 
-    void propagateTracksToR(float r, const int N_proc, const PropagationFlags &pf) {
+    void propagateTracksToR(float r, const int N_proc, const PropagationFlags pf) {
       MPlexQF msRad;
 #pragma omp simd
       for (int n = 0; n < NN; ++n) {
@@ -38,10 +36,10 @@ namespace mkfit {
       propagateHelixToRMPlex(m_Err[iC], m_Par[iC], m_Chg, msRad, m_Err[iP], m_Par[iP], m_FailFlag, N_proc, pf);
     }
 
-    void propagateTracksToHitR(const MPlexHV &par,
+    void propagateTracksToHitR(const MPlexHV& par,
                                const int N_proc,
-                               const PropagationFlags &pf,
-                               const MPlexQI *noMatEffPtr = nullptr) {
+                               const PropagationFlags pf,
+                               const MPlexQI* noMatEffPtr = nullptr) {
       MPlexQF msRad;
 #pragma omp simd
       for (int n = 0; n < NN; ++n) {
@@ -54,7 +52,7 @@ namespace mkfit {
 
     //----------------------------------------------------------------------------
 
-    void propagateTracksToZ(float z, const int N_proc, const PropagationFlags &pf) {
+    void propagateTracksToZ(float z, const int N_proc, const PropagationFlags pf) {
       MPlexQF msZ;
 #pragma omp simd
       for (int n = 0; n < NN; ++n) {
@@ -64,10 +62,10 @@ namespace mkfit {
       propagateHelixToZMPlex(m_Err[iC], m_Par[iC], m_Chg, msZ, m_Err[iP], m_Par[iP], m_FailFlag, N_proc, pf);
     }
 
-    void propagateTracksToHitZ(const MPlexHV &par,
+    void propagateTracksToHitZ(const MPlexHV& par,
                                const int N_proc,
-                               const PropagationFlags &pf,
-                               const MPlexQI *noMatEffPtr = nullptr) {
+                               const PropagationFlags pf,
+                               const MPlexQI* noMatEffPtr = nullptr) {
       MPlexQF msZ;
 #pragma omp simd
       for (int n = 0; n < NN; ++n) {
@@ -78,7 +76,7 @@ namespace mkfit {
           m_Err[iC], m_Par[iC], m_Chg, msZ, m_Err[iP], m_Par[iP], m_FailFlag, N_proc, pf, noMatEffPtr);
     }
 
-    void propagateTracksToPCAZ(const int N_proc, const PropagationFlags &pf) {
+    void propagateTracksToPCAZ(const int N_proc, const PropagationFlags pf) {
       MPlexQF msZ;  // PCA z-coordinate
 #pragma omp simd
       for (int n = 0; n < NN; ++n) {

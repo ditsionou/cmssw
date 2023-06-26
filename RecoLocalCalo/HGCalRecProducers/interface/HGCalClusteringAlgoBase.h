@@ -49,18 +49,20 @@ class HGCalClusteringAlgoBase {
 public:
   enum VerbosityLevel { pDEBUG = 0, pWARNING = 1, pINFO = 2, pERROR = 3 };
 
-  HGCalClusteringAlgoBase(VerbosityLevel v, reco::CaloCluster::AlgoId algo) : verbosity_(v), algoId_(algo) {}
+  HGCalClusteringAlgoBase(VerbosityLevel v, reco::CaloCluster::AlgoId algo, edm::ConsumesCollector iC)
+      : verbosity_(v), algoId_(algo), caloGeomToken_(iC.esConsumes<CaloGeometry, CaloGeometryRecord>()) {}
   virtual ~HGCalClusteringAlgoBase() {}
 
   virtual void populate(const HGCRecHitCollection &hits) = 0;
   virtual void makeClusters() = 0;
   virtual std::vector<reco::BasicCluster> getClusters(bool) = 0;
   virtual void reset() = 0;
-  virtual hgcal_clustering::Density getDensity() { return {}; };        //implementation is in some child class
-  virtual void getEventSetupPerAlgorithm(const edm::EventSetup &es) {}  //implementation is in some child class
+  virtual hgcal_clustering::Density getDensity() = 0;
+  virtual void getEventSetupPerAlgorithm(const edm::EventSetup &es) {}
 
-  inline void getEventSetup(const edm::EventSetup &es, hgcal::RecHitTools rhtools) {
-    rhtools_ = rhtools;
+  inline void getEventSetup(const edm::EventSetup &es) {
+    edm::ESHandle<CaloGeometry> geom = es.getHandle(caloGeomToken_);
+    rhtools_.setGeometry(*geom);
     maxlayer_ = rhtools_.lastLayer(isNose_);
     lastLayerEE_ = rhtools_.lastLayerEE(isNose_);
     lastLayerFH_ = rhtools_.lastLayerFH();

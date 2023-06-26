@@ -20,9 +20,6 @@ namespace edm {
   class PathsAndConsumesOfModulesBase;
   class ProcessContext;
   class ModuleDescription;
-  namespace service {
-    class SystemBounds;
-  }
 }  // namespace edm
 
 enum class TritonServerType { Remote = 0, LocalCPU = 1, LocalGPU = 2 };
@@ -116,7 +113,6 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void preallocate(edm::service::SystemBounds const&);
   void preModuleConstruction(edm::ModuleDescription const&);
   void postModuleConstruction(edm::ModuleDescription const&);
   void preModuleDestruction(edm::ModuleDescription const&);
@@ -138,7 +134,6 @@ private:
   std::unordered_map<std::string, Server> servers_;
   std::unordered_map<std::string, Model> models_;
   std::unordered_map<unsigned, Module> modules_;
-  int numberOfThreads_;
 };
 
 #endif

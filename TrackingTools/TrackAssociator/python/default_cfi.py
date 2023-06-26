@@ -32,7 +32,6 @@ TrackAssociatorParameterBlock = cms.PSet(
         EERecHitCollectionLabel = cms.InputTag("ecalRecHit","EcalRecHitsEE"),
         dRHcalPreselection = cms.double(0.2),
         useMuon = cms.bool(True),
-        preselectMuonTracks = cms.bool(False),
         useCalo = cms.bool(False),
         EBRecHitCollectionLabel = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
         dRMuonPreselection = cms.double(0.2),
@@ -40,9 +39,6 @@ TrackAssociatorParameterBlock = cms.PSet(
 	dRPreshowerPreselection = cms.double(0.2),
         truthMatch = cms.bool(False),
         HBHERecHitCollectionLabel = cms.InputTag("hbhereco"),
-        RPCHitCollectionLabel = cms.InputTag("rpcRecHits"),
-        GEMHitCollectionLabel = cms.InputTag("gemRecHits"),
-        ME0HitCollectionLabel = cms.InputTag("me0RecHits"),
         useHcal = cms.bool(True)
     )
 )
@@ -73,13 +69,9 @@ TrackAssociatorParameters = cms.PSet(
     usePreshower = cms.bool(False),
     dRHcalPreselection = cms.double(0.2),
     useMuon = cms.bool(True),
-    preselectMuonTracks = cms.bool(False),
     useCalo = cms.bool(False),
     EBRecHitCollectionLabel = cms.InputTag("ecalRecHit","EcalRecHitsEB"),
     truthMatch = cms.bool(False),
     HBHERecHitCollectionLabel = cms.InputTag("hbhereco"),
-    RPCHitCollectionLabel = cms.InputTag("rpcRecHits"),
-    GEMHitCollectionLabel = cms.InputTag("gemRecHits"),
-    ME0HitCollectionLabel = cms.InputTag("me0RecHits"),
     useHcal = cms.bool(True)
 )

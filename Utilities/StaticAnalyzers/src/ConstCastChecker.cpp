@@ -58,10 +58,12 @@ namespace clangcms {
       os << "const_cast was used, this may result in thread-unsafe code.";
       std::unique_ptr<clang::ento::PathSensitiveBugReport> PSBR =
           std::make_unique<clang::ento::PathSensitiveBugReport>(*BT, llvm::StringRef(os.str()), errorNode);
-      PSBR->addRange(CE->getSourceRange());
-      if (!m_exception.reportConstCast(*PSBR, C))
+      std::unique_ptr<clang::ento::BasicBugReport> R =
+          std::make_unique<clang::ento::BasicBugReport>(*BT, llvm::StringRef(os.str()), PSBR->getLocation());
+      R->addRange(CE->getSourceRange());
+      if (!m_exception.reportConstCast(*R, C))
         return;
-      C.emitReport(std::move(PSBR));
+      C.emitReport(std::move(R));
       if (cname.empty())
         return;
       std::string tname = "constcast-checker.txt.unsorted";

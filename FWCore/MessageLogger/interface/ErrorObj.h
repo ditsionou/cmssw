@@ -25,8 +25,6 @@
 #include "FWCore/MessageLogger/interface/ELextendedID.h"
 #include "FWCore/MessageLogger/interface/ELseverityLevel.h"
 
-#include "fmt/format.h"
-
 #include <sstream>
 #include <string>
 
@@ -80,8 +78,7 @@ namespace edm {
     inline ErrorObj& operator<<(std::ostream& (*f)(std::ostream&));
     inline ErrorObj& operator<<(std::ios_base& (*f)(std::ios_base&));
     template <typename... Args>
-    inline ErrorObj& format(fmt::format_string<Args...> format, Args&&... args);
-    inline ErrorObj& vformat(std::string_view fmt, fmt::format_args args);
+    inline ErrorObj& format(std::string_view fmt, Args const&... args);
 
     virtual ErrorObj& emitToken(std::string_view txt);
 

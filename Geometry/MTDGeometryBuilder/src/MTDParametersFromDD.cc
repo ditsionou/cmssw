@@ -97,7 +97,6 @@ bool MTDParametersFromDD::build(const cms::DDCompactView* cvp, PMTDParameters& p
       if (dd4hep::dd::compareEqual(dd4hep::dd::noNamespace(it.first), name)) {
         subdet++;
         std::vector<int> subdetPars;
-        subdetPars.reserve(it.second.size());
         for (const auto& i : it.second)
           subdetPars.emplace_back(std::round(i));
         putOne(subdet, subdetPars, ptp);
@@ -151,7 +150,6 @@ bool MTDParametersFromDD::build(const cms::DDCompactView* cvp, PMTDParameters& p
         if (dd4hep::dd::compareEqual(dd4hep::dd::noNamespace(it.first), name)) {
           sector++;
           std::vector<int> ipos;
-          ipos.reserve(it.second.size());
           for (const auto& i : it.second)
             ipos.emplace_back(std::round(i));
           putOne(sector, ipos, ptp);

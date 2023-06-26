@@ -10,6 +10,7 @@ from RecoHGCal.TICL.filteredLayerClustersProducer_cfi import filteredLayerCluste
 filteredLayerClustersHAD = _filteredLayerClustersProducer.clone(
     clusterFilter = "ClusterFilterByAlgoAndSize",
     min_cluster_size = 3, # inclusive
+    algo_number = 8,
     iteration_label = "HAD",
     LayerClustersInputMask = "ticlTrackstersTrk"
 )
@@ -41,7 +42,7 @@ ticlHADStepTask = cms.Task(ticlSeedingGlobal
 
 filteredLayerClustersHFNoseHAD = filteredLayerClustersHAD.clone(
     min_cluster_size = 2, # inclusive
-    algo_number = [9], # reco::CaloCluster::hfnose
+    algo_number = 9,
     iteration_label = "HADn",
     LayerClusters = 'hgcalLayerClustersHFNose',
     LayerClustersInputMask = "ticlTrackstersHFNoseTrk"

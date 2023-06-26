@@ -38,7 +38,6 @@ void TrackAssociatorParameters::loadParameters(const edm::ParameterSet& iConfig,
   usePreshower = iConfig.getParameter<bool>("usePreshower");
   useGEM = iConfig.getParameter<bool>("useGEM");
   useME0 = iConfig.getParameter<bool>("useME0");
-  preselectMuonTracks = iConfig.getParameter<bool>("preselectMuonTracks");
 
   theEBRecHitCollectionLabel = iConfig.getParameter<edm::InputTag>("EBRecHitCollectionLabel");
   theEERecHitCollectionLabel = iConfig.getParameter<edm::InputTag>("EERecHitCollectionLabel");
@@ -49,11 +48,6 @@ void TrackAssociatorParameters::loadParameters(const edm::ParameterSet& iConfig,
   theCSCSegmentCollectionLabel = iConfig.getParameter<edm::InputTag>("CSCSegmentCollectionLabel");
   theGEMSegmentCollectionLabel = iConfig.getParameter<edm::InputTag>("GEMSegmentCollectionLabel");
   theME0SegmentCollectionLabel = iConfig.getParameter<edm::InputTag>("ME0SegmentCollectionLabel");
-  if (preselectMuonTracks) {
-    theRPCHitCollectionLabel = iConfig.getParameter<edm::InputTag>("RPCHitCollectionLabel");
-    theGEMHitCollectionLabel = iConfig.getParameter<edm::InputTag>("GEMHitCollectionLabel");
-    theME0HitCollectionLabel = iConfig.getParameter<edm::InputTag>("ME0HitCollectionLabel");
-  }
 
   accountForTrajectoryChangeCalo = iConfig.getParameter<bool>("accountForTrajectoryChangeCalo");
   // accountForTrajectoryChangeMuon   = iConfig.getParameter<bool>("accountForTrajectoryChangeMuon");
@@ -78,11 +72,6 @@ void TrackAssociatorParameters::loadParameters(const edm::ParameterSet& iConfig,
       gemSegmentsToken = iC.consumes<GEMSegmentCollection>(theGEMSegmentCollectionLabel);
     if (useME0)
       me0SegmentsToken = iC.consumes<ME0SegmentCollection>(theME0SegmentCollectionLabel);
-    if (preselectMuonTracks) {
-      rpcHitsToken = iC.consumes<RPCRecHitCollection>(theRPCHitCollectionLabel);
-      gemHitsToken = iC.consumes<GEMRecHitCollection>(theGEMHitCollectionLabel);
-      me0HitsToken = iC.consumes<ME0RecHitCollection>(theME0HitCollectionLabel);
-    }
   }
   if (truthMatch) {
     simTracksToken = iC.consumes<edm::SimTrackContainer>(edm::InputTag("g4SimHits"));
@@ -121,7 +110,6 @@ void TrackAssociatorParameters::fillPSetDescription(edm::ParameterSetDescription
   desc.add<bool>("useME0", false);
   desc.add<bool>("useMuon", true);
   desc.add<bool>("usePreshower", false);
-  desc.add<bool>("preselectMuonTracks", false);
   desc.add<double>("dREcal", 9999.0);
   desc.add<double>("dREcalPreselection", 0.05);
   desc.add<double>("dRHcal", 9999.0);
@@ -143,7 +131,4 @@ void TrackAssociatorParameters::fillPSetDescription(edm::ParameterSetDescription
   desc.add<edm::InputTag>("HBHERecHitCollectionLabel", edm::InputTag("hbreco"));
   desc.add<edm::InputTag>("HORecHitCollectionLabel", edm::InputTag("horeco"));
   desc.add<edm::InputTag>("ME0SegmentCollectionLabel", edm::InputTag("me0Segments"));
-  desc.add<edm::InputTag>("RPCHitCollectionLabel", edm::InputTag("rpcRecHits"));
-  desc.add<edm::InputTag>("GEMHitCollectionLabel", edm::InputTag("gemRecHits"));
-  desc.add<edm::InputTag>("ME0HitCollectionLabel", edm::InputTag("me0RecHits"));
 }

@@ -24,7 +24,8 @@
 #include "Geometry/Records/interface/TrackerTopologyRcd.h"
 #include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 
-#include <random>
+#include "CLHEP/Random/RandFlat.h"
+#include "CLHEP/Random/RandGauss.h"
 
 /** 
  * enum to decide which algorithm use to populate the conditions
@@ -32,8 +33,6 @@
 namespace {
   enum badChannelAlgo { NAIVE = 1, RANDOM = 2, NONE = 99 };
 }
-
-using Phase2TrackerGeomDetUnit = PixelGeomDetUnit;
 
 class SiPhase2BadStripChannelBuilder : public ConditionDBWriter<SiStripBadStrip> {
 public:
@@ -48,35 +47,15 @@ private:
   void algoBeginRun(const edm::Run& run, const edm::EventSetup& es) override {
     if (!tTopo_) {
       tTopo_ = std::make_unique<TrackerTopology>(es.getData(topoToken_));
-      const TrackerGeometry* tkGeom_ = &es.getData(geomToken_);
-
-      edm::LogInfo("SiPhase2BadStripChannelBuilder")
-          << " There are " << tkGeom_->detUnits().size() << " modules in this geometry.";
-
-      for (auto const& det_u : tkGeom_->detUnits()) {
-        const DetId detid = det_u->geographicalId();
-        uint32_t rawId = detid.rawId();
-        int subid = detid.subdetId();
-        if (detid.det() == DetId::Detector::Tracker) {
-          const Phase2TrackerGeomDetUnit* pixdet = dynamic_cast<const Phase2TrackerGeomDetUnit*>(det_u);
-          assert(pixdet);
-          LogDebug("SiPhase2BadStripChannelBuilder") << rawId << " is a " << subid << " det";
-          if (subid == StripSubdetector::TOB || subid == StripSubdetector::TID) {
-            if (tkGeom_->getDetectorType(rawId) == TrackerGeometry::ModuleType::Ph2PSS ||
-                tkGeom_->getDetectorType(rawId) == TrackerGeometry::ModuleType::Ph2SS) {
-              theOTDets.push_back(pixdet);
-            }
-          }  // if it's a Strip module
-        }    // if it's OT
-      }      // if it's Tracker
-    }        // loop of geomdets
+      tGeom_ = std::make_unique<TrackerGeometry>(es.getData(geomToken_));
+    }
   };
 
   void algoAnalyze(const edm::Event& event, const edm::EventSetup& es) override {
-    // deterministic seed from the event number
-    // should not bias the result as the event number is already
-    // assigned randomly-enough
-    engine_.seed(event.id().event() + (event.id().luminosityBlock() << 10) + (event.id().run() << 20));
+    edm::Service<edm::RandomNumberGenerator> rng;
+    if (!engine_) {
+      engine_ = &rng->getEngine(event.streamID());
+    }
   }
 
   std::map<unsigned short, unsigned short> clusterizeBadChannels(
@@ -84,7 +63,8 @@ private:
 
   // ----------member data ---------------------------
   std::unique_ptr<TrackerTopology> tTopo_;
-  std::mt19937 engine_;
+  std::unique_ptr<TrackerGeometry> tGeom_;
+  CLHEP::HepRandomEngine* engine_;
 
   const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> topoToken_;
   const edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> geomToken_;
@@ -92,8 +72,6 @@ private:
   const unsigned int popConAlgo_;
   const float badComponentsFraction_;
   badChannelAlgo theBCAlgo_;
-
-  std::vector<const Phase2TrackerGeomDetUnit*> theOTDets;
 };
 
 //__________________________________________________________________________________________________
@@ -113,7 +91,8 @@ SiPhase2BadStripChannelBuilder::SiPhase2BadStripChannelBuilder(const edm::Parame
 
 //__________________________________________________________________________________________________
 std::unique_ptr<SiStripBadStrip> SiPhase2BadStripChannelBuilder::getNewObject() {
-  edm::LogInfo("SiPhase2BadStripChannelBuilder") << "... creating dummy SiStripBadStrip Data";
+  using Phase2TrackerGeomDetUnit = PixelGeomDetUnit;
+  edm::LogInfo("SiPhase2BadStripChannelBuilder") << "... creating dummy SiStripBadStrip Data" << std::endl;
 
   auto obj = std::make_unique<SiStripBadStrip>();
 
@@ -122,105 +101,112 @@ std::unique_ptr<SiStripBadStrip> SiPhase2BadStripChannelBuilder::getNewObject() 
     return obj;
   }
 
-  for (auto const& pixdet : theOTDets) {
-    uint32_t rawId = pixdet->geographicalId().rawId();
-    int subid = pixdet->geographicalId().subdetId();
+  edm::LogInfo("SiPhase2BadStripChannelBuilder")
+      << " There are " << tGeom_->detUnits().size() << " modules in this geometry." << std::endl;
 
-    const PixelTopology& topol(pixdet->specificTopology());
+  for (auto const& det_u : tGeom_->detUnits()) {
+    const DetId detid = det_u->geographicalId();
+    uint32_t rawId = detid.rawId();
+    int subid = detid.subdetId();
+    if (detid.det() == DetId::Detector::Tracker) {
+      const Phase2TrackerGeomDetUnit* pixdet = dynamic_cast<const Phase2TrackerGeomDetUnit*>(det_u);
+      assert(pixdet);
+      LogDebug("SiPhase2BadStripChannelBuilder") << rawId << " is a " << subid << " det" << std::endl;
+      if (subid == StripSubdetector::TOB || subid == StripSubdetector::TID) {
+        if (tGeom_->getDetectorType(rawId) == TrackerGeometry::ModuleType::Ph2PSS ||
+            tGeom_->getDetectorType(rawId) == TrackerGeometry::ModuleType::Ph2SS) {
+          const PixelTopology& topol(pixdet->specificTopology());
 
-    const int nrows = topol.nrows();
-    const int ncols = topol.ncolumns();
+          const int nrows = topol.nrows();
+          const int ncols = topol.ncolumns();
 
-    LogDebug("SiPhase2BadStripChannelBuilder")
-        << "DetId: " << rawId << " subdet: " << subid << " nrows: " << nrows << " ncols: " << ncols;
+          LogDebug("SiPhase2BadStripChannelBuilder")
+              << "DetId: " << rawId << " subdet: " << subid << " nrows: " << nrows << " ncols: " << ncols << std::endl;
 
-    std::vector<unsigned int> theSiStripVector;
+          std::vector<unsigned int> theSiStripVector;
 
-    switch (theBCAlgo_) {
-      case NAIVE: {
-        LogDebug("SiPhase2BadStripChannelBuilder") << "using the NAIVE algorithm";
+          switch (theBCAlgo_) {
+            case NAIVE: {
+              LogDebug("SiPhase2BadStripChannelBuilder") << "using the NAIVE algorithm" << std::endl;
 
-        auto dis1 = std::uniform_int_distribution<>(0, nrows - 1);  // [0, nrows]
-        auto dis2 = std::uniform_int_distribution<>(1, 10);         // [1, 10]
+              unsigned short firstBadStrip = std::floor(CLHEP::RandFlat::shoot(engine_, 0, nrows));
+              unsigned short NconsecutiveBadStrips = std::floor(CLHEP::RandFlat::shoot(engine_, 1, 10));
 
-        unsigned short firstBadStrip = std::floor(dis1(engine_));
-        unsigned short NconsecutiveBadStrips = std::floor(dis2(engine_));
+              // if the interval exceeds the end of the module
+              if (firstBadStrip + NconsecutiveBadStrips > nrows) {
+                NconsecutiveBadStrips = nrows - firstBadStrip;
+              }
 
-        // if the interval exceeds the end of the module
-        if (firstBadStrip + NconsecutiveBadStrips > nrows) {
-          NconsecutiveBadStrips = nrows - firstBadStrip;
-        }
+              unsigned int theBadStripRange;
+              theBadStripRange = obj->encodePhase2(firstBadStrip, NconsecutiveBadStrips);
 
-        unsigned int theBadStripRange;
-        theBadStripRange = obj->encodePhase2(firstBadStrip, NconsecutiveBadStrips);
+              if (printdebug_)
+                edm::LogInfo("SiPhase2BadStripChannelBuilder")
+                    << "detid " << rawId << " \t"
+                    << " firstBadStrip " << firstBadStrip << "\t "
+                    << " NconsecutiveBadStrips " << NconsecutiveBadStrips << "\t "
+                    << " packed integer " << std::hex << theBadStripRange << std::dec << std::endl;
 
-        if (printdebug_)
-          edm::LogInfo("SiPhase2BadStripChannelBuilder")
-              << "detid " << rawId << " \t"
-              << " firstBadStrip " << firstBadStrip << "\t "
-              << " NconsecutiveBadStrips " << NconsecutiveBadStrips << "\t "
-              << " packed integer " << std::hex << theBadStripRange << std::dec;
+              theSiStripVector.push_back(theBadStripRange);
+              break;
+            }
+            case RANDOM: {
+              LogDebug("SiPhase2BadStripChannelBuilder") << "using the RANDOM algorithm" << std::endl;
 
-        theSiStripVector.push_back(theBadStripRange);
-        break;
-      }
-      case RANDOM: {
-        LogDebug("SiPhase2BadStripChannelBuilder") << "using the RANDOM algorithm";
+              // auxilliary vector to check if the channels were already used
+              std::vector<Phase2TrackerDigi::PackedDigiType> usedChannels;
 
-        // auxilliary vector to check if the channels were already used
-        std::vector<Phase2TrackerDigi::PackedDigiType> usedChannels;
+              size_t nmaxBadStrips = std::floor(nrows * ncols * badComponentsFraction_);
 
-        size_t nmaxBadStrips = std::floor(nrows * ncols * badComponentsFraction_);
+              LogDebug("SiPhase2BadStripChannelBuilder")
+                  << __FUNCTION__ << " " << __LINE__ << " will mask: " << nmaxBadStrips << " strips" << std::endl;
 
-        LogDebug("SiPhase2BadStripChannelBuilder")
-            << __FUNCTION__ << " " << __LINE__ << " will mask: " << nmaxBadStrips << " strips";
+              while (usedChannels.size() < nmaxBadStrips) {
+                unsigned short badStripRow = std::floor(CLHEP::RandFlat::shoot(engine_, 0, nrows));
+                unsigned short badStripCol = std::floor(CLHEP::RandFlat::shoot(engine_, 0, ncols));
+                const auto& badChannel = Phase2TrackerDigi::pixelToChannel(badStripRow, badStripCol);
 
-        auto disRows = std::uniform_int_distribution<>(0, nrows - 1);  // [0, nrows]
-        auto disCols = std::uniform_int_distribution<>(0, ncols - 1);  // [0, ncols]
+                LogDebug("SiPhase2BadStripChannelBuilder")
+                    << __FUNCTION__ << " " << __LINE__ << ": masking channel " << badChannel << " (" << badStripRow
+                    << "," << badStripCol << ")" << std::endl;
 
-        while (usedChannels.size() < nmaxBadStrips) {
-          unsigned short badStripRow = std::floor(disRows(engine_));
-          unsigned short badStripCol = std::floor(disCols(engine_));
+                if (std::find(usedChannels.begin(), usedChannels.end(), badChannel) == usedChannels.end()) {
+                  usedChannels.push_back(badChannel);
+                }
+              }
 
-          const auto& badChannel = Phase2TrackerDigi::pixelToChannel(badStripRow, badStripCol);
+              const auto badChannelsGroups = this->clusterizeBadChannels(usedChannels);
+              // loop over the groups of bad strips
+              for (const auto& [first, consec] : badChannelsGroups) {
+                unsigned int theBadChannelsRange;
+                theBadChannelsRange = obj->encodePhase2(first, consec);
 
-          LogDebug("SiPhase2BadStripChannelBuilder") << __FUNCTION__ << " " << __LINE__ << ": masking channel "
-                                                     << badChannel << " (" << badStripRow << "," << badStripCol << ")";
-
-          if (std::find(usedChannels.begin(), usedChannels.end(), badChannel) == usedChannels.end()) {
-            usedChannels.push_back(badChannel);
+                if (printdebug_) {
+                  edm::LogInfo("SiPhase2BadStripChannelBuilder")
+                      << "detid " << rawId << " \t"
+                      << " firstBadStrip " << first << "\t "
+                      << " NconsecutiveBadStrips " << consec << "\t "
+                      << " packed integer " << std::hex << theBadChannelsRange << std::dec << std::endl;
+                }
+                theSiStripVector.push_back(theBadChannelsRange);
+              }
+              break;
+            }
+            case NONE:
+              [[fallthrough]];
+            default:
+              throw cms::Exception("Inconsistent configuration") << "Did not specifiy the right algorithm to be run";
           }
-        }
 
-        const auto badChannelsGroups = this->clusterizeBadChannels(usedChannels);
-        // loop over the groups of bad strips
-        for (const auto& [first, consec] : badChannelsGroups) {
-          unsigned int theBadChannelsRange;
-          theBadChannelsRange = obj->encodePhase2(first, consec);
+          SiStripBadStrip::Range range(theSiStripVector.begin(), theSiStripVector.end());
+          if (!obj->put(rawId, range))
+            edm::LogError("SiPhase2BadStripChannelBuilder")
+                << "[SiPhase2BadStripChannelBuilder::getNewObject] detid already exists" << std::endl;
 
-          if (printdebug_) {
-            edm::LogInfo("SiPhase2BadStripChannelBuilder")
-                << "detid " << rawId << " \t"
-                << " firstBadStrip " << first << "\t "
-                << " NconsecutiveBadStrips " << consec << "\t "
-                << " packed integer " << std::hex << theBadChannelsRange << std::dec;
-          }
-          theSiStripVector.push_back(theBadChannelsRange);
-        }
-        break;
-      }
-      case NONE:
-        [[fallthrough]];
-      default:
-        throw cms::Exception("Inconsistent configuration") << "Did not specifiy the right algorithm to be run";
-    }
-
-    SiStripBadStrip::Range range(theSiStripVector.begin(), theSiStripVector.end());
-    if (!obj->put(rawId, range))
-      edm::LogError("SiPhase2BadStripChannelBuilder")
-          << "[SiPhase2BadStripChannelBuilder::getNewObject] detid already exists";
-
-  }  // loop of geomdets
+        }  // if it's a Strip module
+      }    // if it's OT
+    }      // if it's Tracker
+  }        // loop of geomdets
 
   //End now write sistripbadChannel data in DB
   edm::Service<cond::service::PoolDBOutputService> mydbservice;
@@ -232,9 +218,10 @@ std::unique_ptr<SiStripBadStrip> SiPhase2BadStripChannelBuilder::getNewObject() 
       mydbservice->appendOneIOV<SiStripBadStrip>(*obj, mydbservice->currentTime(), "SiStripBadStripRcd");
     }
   } else {
-    edm::LogError("SiPhase2BadStripChannelBuilder") << "Service is unavailable";
+    edm::LogError("SiPhase2BadStripChannelBuilder") << "Service is unavailable" << std::endl;
   }
 
+  tGeom_.release();
   return obj;
 }
 

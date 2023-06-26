@@ -20,9 +20,6 @@ class Phase2StripCPE;
 #include "CondFormats/SiStripObjects/interface/SiStripBadStrip.h"
 #include "CalibFormats/SiStripObjects/interface/SiStripQuality.h"
 
-#include "FWCore/Utilities/interface/thread_safety_macros.h"
-
-#include <atomic>
 #include <unordered_map>
 
 // #define VISTAT
@@ -145,9 +142,11 @@ public:
 
   StMeasurementDetSet(const StMeasurementConditionSet& cond)
       : conditionSet_(&cond),
+        empty_(cond.nDet(), true),
         activeThisEvent_(cond.nDet(), true),
         detSet_(cond.nDet()),
         detIndex_(cond.nDet(), -1),
+        ready_(cond.nDet(), true),
         theRawInactiveStripDetIds_(),
         stripDefined_(0),
         stripUpdated_(0),
@@ -158,16 +157,16 @@ public:
   const StMeasurementConditionSet& conditions() const { return *conditionSet_; }
 
   void update(int i, const StripDetset& detSet) {
-    detSet_[i].detSet_ = detSet;
-    detSet_[i].empty_ = false;
+    detSet_[i] = detSet;
+    empty_[i] = false;
   }
 
   void update(int i, int j) {
     assert(j >= 0);
-    assert(detSet_[i].empty_);
-    assert(detSet_[i].ready_);
+    assert(empty_[i]);
+    assert(ready_[i]);
     detIndex_[i] = j;
-    detSet_[i].empty_ = false;
+    empty_[i] = false;
     incReady();
   }
 
@@ -176,21 +175,19 @@ public:
   unsigned int id(int i) const { return conditions().id(i); }
   int find(unsigned int jd, int i = 0) const { return conditions().find(jd, i); }
 
-  bool empty(int i) const { return detSet_[i].empty_; }
+  bool empty(int i) const { return empty_[i]; }
   bool isActive(int i) const { return activeThisEvent_[i] && conditions().isActiveThisPeriod(i); }
 
   void setEmpty(int i) {
-    detSet_[i].empty_ = true;
+    empty_[i] = true;
     activeThisEvent_[i] = true;
   }
   void setUpdated(int i) { stripUpdated_[i] = true; }
 
   void setEmpty() {
     printStat();
-    for (auto& d : detSet_) {
-      d.empty_ = true;
-      d.ready_ = true;
-    }
+    std::fill(empty_.begin(), empty_.end(), true);
+    std::fill(ready_.begin(), ready_.end(), true);
     std::fill(detIndex_.begin(), detIndex_.end(), -1);
     std::fill(activeThisEvent_.begin(), activeThisEvent_.end(), true);
     incTot(size());
@@ -201,16 +198,16 @@ public:
   void setActiveThisEvent(int i, bool active) {
     activeThisEvent_[i] = active;
     if (!active)
-      detSet_[i].empty_ = true;
+      empty_[i] = true;
   }
 
   edm::Handle<edmNew::DetSetVector<SiStripCluster>>& handle() { return handle_; }
   const edm::Handle<edmNew::DetSetVector<SiStripCluster>>& handle() const { return handle_; }
   // StripDetset & detSet(int i) { return detSet_[i]; }
   const StripDetset& detSet(int i) const {
-    if (detSet_[i].ready_)
-      getDetSet(i);
-    return detSet_[i].detSet_;
+    if (ready_[i])
+      const_cast<StMeasurementDetSet*>(this)->getDetSet(i);
+    return detSet_[i];
   }
 
   //// ------- pieces for on-demand unpacking --------
@@ -230,18 +227,16 @@ public:
   }
 
 private:
-  void getDetSet(int i) const {
-    const auto& det = detSet_[i];
+  void getDetSet(int i) {
     if (detIndex_[i] >= 0) {
-      // edmNew::DetSet<T>::set() internally does an atomic update
-      det.detSet_.set(*handle_, handle_->item(detIndex_[i]));
-      det.empty_ = false;  // better be false already
+      detSet_[i].set(*handle_, handle_->item(detIndex_[i]));
+      empty_[i] = false;  // better be false already
       incAct();
     } else {  // we should not be here
-      det.detSet_ = StripDetset();
-      det.empty_ = true;
+      detSet_[i] = StripDetset();
+      empty_[i] = true;
     }
-    det.ready_ = false;
+    ready_[i] = false;
     incSet();
   }
 
@@ -252,21 +247,13 @@ private:
   // Globals, per-event
   edm::Handle<edmNew::DetSetVector<SiStripCluster>> handle_;
 
-  // Helper struct to define only the vector elements as mutable and
-  // to have a vector of atomics without an explicit loop over
-  // elements to set their values
-  struct DetSetHelper {
-    mutable std::atomic<bool> empty_ = true;
-    mutable std::atomic<bool> ready_ = true;  // to be cleaned
-    // only thread-safe non-const member functions are called from a const function
-    CMS_THREAD_SAFE mutable StripDetset detSet_;
-  };
-
+  std::vector<bool> empty_;
   std::vector<bool> activeThisEvent_;
 
   // full reco
-  std::vector<DetSetHelper> detSet_;
+  std::vector<StripDetset> detSet_;
   std::vector<int> detIndex_;
+  std::vector<bool> ready_;  // to be cleaned
 
   // note: not aligned to the index
   std::vector<uint32_t> theRawInactiveStripDetIds_;

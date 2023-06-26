@@ -6,8 +6,6 @@
 #include "RecoTracker/TkHitPairs/interface/LayerHitMapCache.h"
 #include "TrackingTools/TransientTrackingRecHit/interface/SeedingLayerSetsHits.h"
 
-#include <optional>
-
 class DetLayer;
 class IdealMagneticFieldRecord;
 class MagneticField;
@@ -29,40 +27,37 @@ public:
 
   ~HitPairGeneratorFromLayerPair();
 
-  std::optional<HitDoublets> doublets(const TrackingRegion& reg,
-                                      const edm::Event& ev,
-                                      const edm::EventSetup& es,
-                                      Layers layers) {
+  HitDoublets doublets(const TrackingRegion& reg, const edm::Event& ev, const edm::EventSetup& es, Layers layers) {
     assert(theLayerCache);
     return doublets(reg, ev, es, layers, *theLayerCache);
   }
-  std::optional<HitDoublets> doublets(const TrackingRegion& reg,
-                                      const edm::Event& ev,
-                                      const edm::EventSetup& es,
-                                      const Layer& innerLayer,
-                                      const Layer& outerLayer) {
+  HitDoublets doublets(const TrackingRegion& reg,
+                       const edm::Event& ev,
+                       const edm::EventSetup& es,
+                       const Layer& innerLayer,
+                       const Layer& outerLayer) {
     assert(theLayerCache);
     return doublets(reg, ev, es, innerLayer, outerLayer, *theLayerCache);
   }
-  std::optional<HitDoublets> doublets(const TrackingRegion& reg,
-                                      const edm::Event& ev,
-                                      const edm::EventSetup& es,
-                                      Layers layers,
-                                      LayerCacheType& layerCache) {
+  HitDoublets doublets(const TrackingRegion& reg,
+                       const edm::Event& ev,
+                       const edm::EventSetup& es,
+                       Layers layers,
+                       LayerCacheType& layerCache) {
     Layer innerLayerObj = innerLayer(layers);
     Layer outerLayerObj = outerLayer(layers);
     return doublets(reg, ev, es, innerLayerObj, outerLayerObj, layerCache);
   }
-  std::optional<HitDoublets> doublets(const TrackingRegion& reg,
-                                      const edm::Event& ev,
-                                      const edm::EventSetup& es,
-                                      const Layer& innerLayer,
-                                      const Layer& outerLayer,
-                                      LayerCacheType& layerCache);
+  HitDoublets doublets(const TrackingRegion& reg,
+                       const edm::Event& ev,
+                       const edm::EventSetup& es,
+                       const Layer& innerLayer,
+                       const Layer& outerLayer,
+                       LayerCacheType& layerCache);
 
-  bool hitPairs(
+  void hitPairs(
       const TrackingRegion& reg, OrderedHitPairs& prs, const edm::Event& ev, const edm::EventSetup& es, Layers layers);
-  static bool doublets(const TrackingRegion& region,
+  static void doublets(const TrackingRegion& region,
                        const DetLayer& innerHitDetLayer,
                        const DetLayer& outerHitDetLayer,
                        const RecHitsSortedInPhi& innerHitsMap,

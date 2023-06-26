@@ -74,15 +74,6 @@ namespace edm {
       using Item = void;
       using Remaining = Vector<>;
     };
-
-    template <typename T, typename U>
-    struct Push;
-
-    template <typename T, typename... U>
-    struct Push<T, Vector<U...>> {
-      constexpr static bool empty = false;
-      using Result = Vector<T, U...>;
-    };
   }  // namespace mpl
 }  // namespace edm
 

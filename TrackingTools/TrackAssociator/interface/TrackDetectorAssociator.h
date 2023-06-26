@@ -128,8 +128,7 @@ private:
   bool addTAMuonSegmentMatch(TAMuonChamberMatch&, const RecSegment*, const AssociatorParameters&) dso_internal;
 
   void getTAMuonChamberMatches(std::vector<TAMuonChamberMatch>& matches,
-                               const AssociatorParameters& parameters,
-                               std::set<DetId> occupancy) dso_internal;
+                               const AssociatorParameters& parameters) dso_internal;
 
   void init(const edm::EventSetup&, const AssociatorParameters&) dso_internal;
 

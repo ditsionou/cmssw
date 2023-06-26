@@ -22,9 +22,7 @@ void pyqver_(int&, int&, int&, int&);
 #define PYQVER pyqver_
 
 extern "C" {
-extern struct {
-  double bgen;
-} plfpar_;
+extern struct { double bgen; } plfpar_;
 }
 #define plfpar plfpar_
 
