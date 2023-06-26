@@ -26,7 +26,6 @@ FEDRawDataCollection SlinkFromRaw::next() {
   if( fileReader_.closed() ) {
     auto inputfile = inputfiles_[ifile_];
     fileReader_.open(inputfile);
-    
   }
 
   //no more records in the file
@@ -44,7 +43,7 @@ FEDRawDataCollection SlinkFromRaw::next() {
   
   // Set up specific records to interpet the formats
   const hgcal_slinkfromraw::RecordStarting *rStart((hgcal_slinkfromraw::RecordStarting*)record_);
-  const hgcal_slinkfromraw::RecordStopping *rStop((hgcal_slinkfromraw::RecordStopping*)record_);
+  const hgcal_slinkfromraw::RecordStopping *rStop ((hgcal_slinkfromraw::RecordStopping*)record_);
   const hgcal_slinkfromraw::RecordRunning  *rEvent((hgcal_slinkfromraw::RecordRunning*)record_);
   if(record_->state()==hgcal_slinkfromraw::FsmState::Starting) {
     rStart->print();

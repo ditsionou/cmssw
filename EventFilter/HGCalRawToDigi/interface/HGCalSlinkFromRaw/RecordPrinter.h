@@ -3,8 +3,6 @@
 
 #include <iostream>
 #include <iomanip>
-#include <cassert>
-
 #include "RecordRunning.h"
 #include "RecordStarting.h"
 #include "RecordStopping.h"

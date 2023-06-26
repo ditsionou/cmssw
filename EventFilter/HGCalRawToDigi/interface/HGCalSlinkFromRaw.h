@@ -8,7 +8,6 @@
 #include <iostream>
 #include <fstream>
 
-
 namespace hgcal {
 
   /// a reader of s-link data from binary files
@@ -29,7 +28,6 @@ namespace hgcal {
     hgcal_slinkfromraw::RecordT<4095> *record_;
     uint32_t nEvents_;
   };
-
 }  // namespace hgcal
 
 #endif
