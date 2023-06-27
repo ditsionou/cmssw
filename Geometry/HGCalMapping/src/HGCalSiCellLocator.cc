@@ -73,7 +73,6 @@ HGCalSiCellChannelInfo HGCalSiCellLocator::locateCellByChannel(uint8_t roc, uint
 
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
   if(it==cellColl_.params_.end()) {
-    std::cout << "roc: " << int(roc) << ", half: " << int(rocHalf) << ", pin: " << seq << ", wafType: " << int(wafType) << ", isHD: " << isHD << std::endl;
     edm::Exception e(edm::errors::NotFound,"Failed to match Si cell to geometry by channel");
     throw e;
   }

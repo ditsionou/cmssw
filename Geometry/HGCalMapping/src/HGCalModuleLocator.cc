@@ -28,7 +28,10 @@ void HGCalModuleLocator::buildLocatorFrom(std::string path,bool usefip)
     stream.get(c);
     std::string modtype;
     if(!isspace(stream.peek())){stream >> modtype;}
-    stream >> m.econdidx >> m.captureblock >> m.slink >> m.captureblockidx >> m.fedid >> m.DAQ >> m.zside;
+    int zside;
+    stream >> m.econdidx >> m.captureblock >> m.slink >> m.captureblockidx >> m.fedid >> m.DAQ >> zside;
+    //zside true for -1, false for +1 (matching convention from sc det ID)
+    m.zside = (zside<0) ? true : false;
     mod2loc_.addParameter(m);
   }
 }
@@ -47,10 +50,11 @@ HGCalModuleInfo HGCalModuleLocator::getModule(int econdidx, int captureblock, in
   return *it;
 }
 
-HGCalModuleInfo HGCalModuleLocator::getModuleFromGeom(int plane, int u, int v, bool isSiPM) const
+HGCalModuleInfo HGCalModuleLocator::getModuleFromGeom(int plane, int u, int v, int zside, bool isSiPM) const
 {
-  auto _geometryMatch = [plane, u, v, isSiPM](HGCalModuleInfo m){ 
-    return m.plane == plane && m.u == u && m.v == v && m.isSiPM == isSiPM;
+  bool binZside = (zside<0) ? true : false;
+  auto _geometryMatch = [plane, u, v, binZside, isSiPM](HGCalModuleInfo m){ 
+    return m.plane == plane && m.u == u && m.v == v && m.zside == binZside && m.isSiPM == isSiPM;
   };
   auto it = std::find_if(begin(mod2loc_.params_), end(mod2loc_.params_), _geometryMatch);
   if(it==mod2loc_.params_.end()){

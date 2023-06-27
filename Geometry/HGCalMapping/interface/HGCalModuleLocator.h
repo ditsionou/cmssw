@@ -33,7 +33,7 @@ class HGCalModuleLocator {
     HGCalModuleInfo getModule(int econdidx, int captureblockidx, int fedid) const;
 
     // HGCalModule from geometry information 
-    HGCalModuleInfo getModuleFromGeom(int plane, int u, int v, bool isSiPM) const;
+    HGCalModuleInfo getModuleFromGeom(int plane, int u, int v, int zside, bool isSiPM) const;
 
     // Module location from electronics id information (ECON-D idx, Capture Block , FED ID)
     std::tuple<int,int,int> getModuleLocation(int econdidx, int captureblock, int fedid) const;

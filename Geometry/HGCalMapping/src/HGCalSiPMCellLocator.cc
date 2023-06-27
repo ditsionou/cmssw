@@ -78,7 +78,14 @@ std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id
   return std::make_tuple(celliring, celliphi);
 }
 
-DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const
+DetId HGCalSiPMCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const
+{
+  int idlayer = layer - 25;
+  int idtype = ((idlayer <= 8) ? 0 : ((idlayer <= 17) ? 1 : 2));
+  return getDetId(id, seq, z, layer, modiring, modiphi, idtype, true);
+}
+
+DetId HGCalSiPMCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const
 {
   int sipmcell = getSiPMchannel(seq, id.econdeRx(), id.halfrocChannel());
 
@@ -96,7 +103,6 @@ DetId HGCalSiPMCellLocator::getDetId(HGCalElectronicsId& id, int seq, int z, int
 
   // Layer desription has an offset of 25
   int idlayer = layer - 25;
-  int idtype = ((idlayer <= 8) ? 0 : ((idlayer <= 17) ? 1 : 2));
   int ring = ((z == 0) ? celliring : (-1)*celliring);
   // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
   int iphi = modiphi*8 + celliphi + 1;

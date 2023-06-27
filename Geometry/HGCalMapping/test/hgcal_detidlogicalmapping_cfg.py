@@ -43,6 +43,7 @@ process.analyzer = cms.EDAnalyzer("HGCalDetIdLogicalMappingTester",
                                   modFile = cms.string('Geometry/HGCalMapping/data/modulelocator.txt'),
                                   siFile = cms.string('Geometry/HGCalMapping/data/WaferCellMapTraces.txt'),
                                   sipmFile = cms.string('Geometry/HGCalMapping/data/channels_sipmontile.hgcal.txt'),
+                                  makeTextFiles = cms.bool(False),
                                   label = cms.string(''))
 
 process.p = cms.Path(
