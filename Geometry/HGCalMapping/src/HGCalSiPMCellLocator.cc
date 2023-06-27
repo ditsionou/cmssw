@@ -2,74 +2,70 @@
 #include "FWCore/ParameterSet/interface/FileInPath.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 
-void HGCalSiPMCellLocator::buildLocatorFrom(std::string channelpath)
-{
+void HGCalSiPMCellLocator::buildLocatorFrom(std::string channelpath) {
   edm::FileInPath fip(channelpath);
   std::ifstream file(fip.fullPath());
   std::string line;
-  if (file.is_open())
-  {
-    while (std::getline(file, line))
-    {
+  if (file.is_open()) {
+    while (std::getline(file, line)) {
       std::istringstream stream(line);
 
-      HGCalSiPMTileInfo c; 
+      HGCalSiPMTileInfo c;
       stream >> c.sipmcell >> c.plane >> c.iring >> c.iphi >> c.type >> c.trigch >> c.trigsum >> c.modiring >> c.t;
       cellColl_.addParameter(c);
     }
-  }
-  else
-  {
-    edm::Exception e(edm::errors::FileOpenError, "HGCalSiPMCellLocator::buildLocatorFrom : SiPM channel mapping file can not be found.");
+  } else {
+    edm::Exception e(edm::errors::FileOpenError,
+                     "HGCalSiPMCellLocator::buildLocatorFrom : SiPM channel mapping file can not be found.");
     throw e;
   }
   file.close();
-
 }
 
-int HGCalSiPMCellLocator::getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const
-{
-  return halfrocch + 36*econderx;
+int HGCalSiPMCellLocator::getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const {
+  return halfrocch + 36 * econderx;
 }
 
-std::tuple<int,int,int> HGCalSiPMCellLocator::getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const
-{
+std::tuple<int, int, int> HGCalSiPMCellLocator::getCellLocation(
+    int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const {
   int sipmcell = getSiPMchannel(seq, econderx, halfrocch);
 
-  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c){
+  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c) {
     return c.sipmcell == sipmcell && c.plane == layer && c.modiring == modiring;
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
-  if(it==cellColl_.params_.end()){
-    edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
+  if (it == cellColl_.params_.end()) {
+    edm::Exception e(edm::errors::NotFound,
+                     "HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
     throw e;
   }
   return std::make_tuple(it->plane, it->iring, it->iphi);
 }
 
-HGCalSiPMTileInfo HGCalSiPMCellLocator::getCellByGeom(int layer, int iring, int iphi) const
-{
-  auto _matchesByGeom = [iring, iphi, layer](HGCalSiPMTileInfo c){
+HGCalSiPMTileInfo HGCalSiPMCellLocator::getCellByGeom(int layer, int iring, int iphi) const {
+  auto _matchesByGeom = [iring, iphi, layer](HGCalSiPMTileInfo c) {
     return c.iring == iring && c.iphi == iphi && c.plane == layer;
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByGeom);
-  if(it==cellColl_.params_.end()){
-    edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellByGeom: Failed to match cell by geom location");
+  if (it == cellColl_.params_.end()) {
+    edm::Exception e(edm::errors::NotFound,
+                     "HGCalSiPMCellLocator::getCellByGeom: Failed to match cell by geom location");
     throw e;
   }
   return *it;
-} 
+}
 
-std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const
-{
+std::tuple<int, int> HGCalSiPMCellLocator::getCellLocation(
+    HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const {
   int sipmcell = getSiPMchannel(seq, (int)id.econdeRx(), (int)id.halfrocChannel());
 
-  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c){
+  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c) {
     return c.sipmcell == sipmcell && c.plane == layer && c.modiring == modiring;
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
-  if(it==cellColl_.params_.end()){
-    edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
+  if (it == cellColl_.params_.end()) {
+    edm::Exception e(edm::errors::NotFound,
+                     "HGCalSiPMCellLocator::getCellLocation: Failed to match cell by channel number");
     throw e;
   }
   int celliring = it->iring;
@@ -78,23 +74,23 @@ std::tuple<int,int> HGCalSiPMCellLocator::getCellLocation(HGCalElectronicsId& id
   return std::make_tuple(celliring, celliphi);
 }
 
-DetId HGCalSiPMCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const
-{
+DetId HGCalSiPMCellLocator::getDetId(
+    const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const {
   int idlayer = layer - 25;
   int idtype = ((idlayer <= 8) ? 0 : ((idlayer <= 17) ? 1 : 2));
   return getDetId(id, seq, z, layer, modiring, modiphi, idtype, true);
 }
 
-DetId HGCalSiPMCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const
-{
+DetId HGCalSiPMCellLocator::getDetId(
+    const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const {
   int sipmcell = getSiPMchannel(seq, id.econdeRx(), id.halfrocChannel());
 
-  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c){
+  auto _matchesByChannel = [sipmcell, layer, modiring](HGCalSiPMTileInfo c) {
     return c.sipmcell == sipmcell && c.plane == layer && c.modiring == modiring;
   };
   auto it = std::find_if(begin(cellColl_.params_), end(cellColl_.params_), _matchesByChannel);
-  if(it==cellColl_.params_.end()){
-    edm::Exception e(edm::errors::NotFound,"HGCalSiPMCellLocator::getDetId: Failed to match cell by channel number");
+  if (it == cellColl_.params_.end()) {
+    edm::Exception e(edm::errors::NotFound, "HGCalSiPMCellLocator::getDetId: Failed to match cell by channel number");
     throw e;
   }
 
@@ -103,46 +99,36 @@ DetId HGCalSiPMCellLocator::getDetId(const HGCalElectronicsId& id, int seq, int 
 
   // Layer desription has an offset of 25
   int idlayer = layer - 25;
-  int ring = ((z == 0) ? celliring : (-1)*celliring);
+  int ring = ((z == 0) ? celliring : (-1) * celliring);
   // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
-  int iphi = modiphi*8 + celliphi + 1;
+  int iphi = modiphi * 8 + celliphi + 1;
 
   HGCScintillatorDetId detid(type, idlayer, ring, iphi, false, sipm);
   return detid;
 }
 
-std::tuple<int,int,int> HGCalSiPMCellLocator::getModuleLocation(DetId& id) const
-{
+std::tuple<int, int, int> HGCalSiPMCellLocator::getModuleLocation(DetId& id) const {
   DetId::Detector subdet = id.det();
 
-  if (subdet == DetId::Detector::HGCalHSc)
-  {
-    HGCScintillatorDetId detid(id); 
-    
+  if (subdet == DetId::Detector::HGCalHSc) {
+    HGCScintillatorDetId detid(id);
+
     // Layer desription has an offset of 25
     int layer = detid.layer() + 25;
     int cellring = detid.ring();
     int modiring;
-    if (layer <= 37)
-    {
+    if (layer <= 37) {
       modiring = ((cellring <= 25) ? 0 : 1);
-    }
-    else if (layer <= 43)
-    {
-      modiring = ((cellring <= 17) ? 0 : ((cellring <= 25 ) ? 1 : ((cellring <= 33) ? 2 : 3)));
-    }
-    else
-    {
-      modiring = ((cellring <= 5) ? 0 : ((cellring <= 17 ) ? 1 : ((cellring <= 25) ? 2 : ((cellring <= 33) ? 3 : 4))));
+    } else if (layer <= 43) {
+      modiring = ((cellring <= 17) ? 0 : ((cellring <= 25) ? 1 : ((cellring <= 33) ? 2 : 3)));
+    } else {
+      modiring = ((cellring <= 5) ? 0 : ((cellring <= 17) ? 1 : ((cellring <= 25) ? 2 : ((cellring <= 33) ? 3 : 4))));
     }
     // iphi currently calculated for SiPM modules with iphi 0-7 only, DetId iphi defined for 1-288
-    int modiphi = (detid.iphi()-1)/8;
+    int modiphi = (detid.iphi() - 1) / 8;
 
-    return std::make_tuple(layer,modiring,modiphi);
-  }
-  else
-  {
+    return std::make_tuple(layer, modiring, modiphi);
+  } else {
     throw cms::Exception("InvalidDetId") << "Wrong HGCal DetId::Detector in HGCalSiPMCellLocator::getModuleLocation.";
-  
   }
 }

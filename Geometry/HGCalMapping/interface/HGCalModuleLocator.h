@@ -21,42 +21,38 @@
 #include <algorithm>
 
 class HGCalModuleLocator {
+public:
+  HGCalModuleLocator(){};
 
-  public:
+  void buildLocatorFrom(std::string path, bool usefip = false);
 
-    HGCalModuleLocator(){};
+  // HGCalModule from electronics id information (ECON-D idx, Capture Block idx, FED ID)
+  HGCalModuleInfo getModule(int econdidx, int captureblockidx, int fedid) const;
 
-    void buildLocatorFrom(std::string path,bool usefip=false);
+  // HGCalModule from geometry information
+  HGCalModuleInfo getModuleFromGeom(int plane, int u, int v, int zside, bool isSiPM) const;
 
-    // HGCalModule from electronics id information (ECON-D idx, Capture Block idx, FED ID)
-    HGCalModuleInfo getModule(int econdidx, int captureblockidx, int fedid) const;
+  // Module location from electronics id information (ECON-D idx, Capture Block , FED ID)
+  std::tuple<int, int, int> getModuleLocation(int econdidx, int captureblock, int fedid) const;
 
-    // HGCalModule from geometry information 
-    HGCalModuleInfo getModuleFromGeom(int plane, int u, int v, int zside, bool isSiPM) const;
+  //  Module location from ElectronicsId
+  std::tuple<int, int, int> getModuleLocation(HGCalElectronicsId& id) const;
 
-    // Module location from electronics id information (ECON-D idx, Capture Block , FED ID)
-    std::tuple<int,int,int> getModuleLocation(int econdidx, int captureblock, int fedid) const;
+  // ECON-D idx from Module location
+  int getEcondIdx(int plane, int u, int v, int isSiPM) const;
+  // Capture Block from Module location
+  int getCaptureBlockIdx(int plane, int u, int v, int isSiPM) const;
+  // FED ID from Module location
+  int getFedId(int plane, int u, int v, int isSiPM) const;
+  // DAQ from Module location
+  std::string getDAQ(int plane, int u, int v, int isSiPM) const;
 
-    //  Module location from ElectronicsId
-    std::tuple<int,int,int> getModuleLocation(HGCalElectronicsId& id) const;
+  //returns the info
+  HGCalCondSerializableModuleInfo getInfo() { return mod2loc_; }
 
-    // ECON-D idx from Module location
-    int getEcondIdx(int plane, int u, int v, int isSiPM) const;
-    // Capture Block from Module location
-    int getCaptureBlockIdx(int plane, int u, int v, int isSiPM) const;
-    // FED ID from Module location
-    int getFedId(int plane, int u, int v, int isSiPM) const;
-    // DAQ from Module location
-    std::string getDAQ(int plane, int u, int v, int isSiPM) const;
-
-    //returns the info
-    HGCalCondSerializableModuleInfo getInfo() {return mod2loc_; }
-  
-  private:
-  
-    //object holding all module info
-    HGCalCondSerializableModuleInfo mod2loc_;
-
+private:
+  //object holding all module info
+  HGCalCondSerializableModuleInfo mod2loc_;
 };
 
 #endif
