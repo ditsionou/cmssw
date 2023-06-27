@@ -19,6 +19,7 @@ void HGCalModuleLocator::buildLocatorFrom(std::string path,bool usefip)
   while(std::getline(file, line))
   {
     std::istringstream stream(line);
+    int zside;
     HGCalModuleInfo m;
     std::string itype;
     stream >> m.plane >> m.u >> m.v >> m.isSiPM >> m.isHD;
@@ -28,7 +29,6 @@ void HGCalModuleLocator::buildLocatorFrom(std::string path,bool usefip)
     stream.get(c);
     std::string modtype;
     if(!isspace(stream.peek())){stream >> modtype;}
-    int zside;
     stream >> m.econdidx >> m.captureblock >> m.slink >> m.captureblockidx >> m.fedid >> m.DAQ >> zside;
     //zside true for -1, false for +1 (matching convention from sc det ID)
     m.zside = (zside<0) ? true : false;

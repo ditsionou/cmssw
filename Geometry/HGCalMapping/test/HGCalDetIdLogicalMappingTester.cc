@@ -211,7 +211,7 @@ HGCalElectronicsId HGCalDetIdLogicalMappingTester::detIdToEleId(DetId detId){
       edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::detIdToEleId: Module with capture block>15");
       throw e;
     }
-    HGCalElectronicsId eleId(modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, cellInfo.seq);
+    HGCalElectronicsId eleId(modInfo.zside, modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, cellInfo.seq);
     return eleId;
   }
   else if(detId.det()==DetId::HGCalHSc){
@@ -259,7 +259,7 @@ HGCalElectronicsId HGCalDetIdLogicalMappingTester::detIdToEleId(DetId detId){
       edm::Exception e(edm::errors::NotFound,"HGCalDetIdLogicalMappingTester::detIdToEleId: Module with capture block >15");
       throw e;
     }
-    const HGCalElectronicsId sipmEleId(modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, seqHalfRocCh);
+    const HGCalElectronicsId sipmEleId(modInfo.zside, modInfo.fedid, modInfo.captureblock, modInfo.econdidx, econdErx, seqHalfRocCh);
     return sipmEleId;
   }
   else{

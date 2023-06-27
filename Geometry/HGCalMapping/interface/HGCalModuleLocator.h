@@ -9,7 +9,6 @@
 #ifndef Geometry_HGCalMapping_HGCalModuleLocator_H
 #define Geometry_HGCalMapping_HGCalModuleLocator_H
 
-#include "DataFormats/HGCalDigi/interface/HGCalElectronicsId.h"
 #include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
 #include "CondFormats/HGCalObjects/interface/HGCalCondSerializableModuleInfo.h"
 
