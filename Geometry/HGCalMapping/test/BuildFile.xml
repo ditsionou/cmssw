@@ -6,6 +6,17 @@
   <flags EDM_PLUGIN="1"/>
 </library>
 
+<library file="HGCalDetIdLogicalMappingTester.cc" name="HGCalDetIdLogicalMappingTester">
+  <use name="CondFormats/DataRecord"/>
+  <use name="CondFormats/HGCalObjects"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="Geometry/HGCalMapping"/>
+  <use name="Geometry/HGCalGeometry"/>
+  <use name="FWCore/ServiceRegistry"/>
+  <flags EDM_PLUGIN="1"/>
+</library>
+
 <bin file="testHGCalLogicalMapping.cc" name="testHGCalLogicalMapping">
   <flags TEST_RUNNER_ARGS=" 2000 Geometry/HGCalMapping/data/channels_sipmontile.hgcal.txt Geometry/HGCalMapping/data/modulelocator.txt"/>
   <use name="Geometry/HGCalMapping"/>

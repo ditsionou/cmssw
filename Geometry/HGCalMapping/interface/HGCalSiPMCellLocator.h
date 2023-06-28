@@ -13,7 +13,6 @@
 #include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
 #include "CondFormats/HGCalObjects/interface/HGCalCondSerializableSiPMTileInfo.h"
 
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -25,29 +24,35 @@
 #include <algorithm>
 
 class HGCalSiPMCellLocator {
+public:
+  HGCalSiPMCellLocator(){};
 
-    public:
+  void buildLocatorFrom(std::string channelpath);
 
-        HGCalSiPMCellLocator(){};
+  // // Cell information from geom location
+  HGCalSiPMTileInfo getCellByGeom(int layer, int iring, int iphi) const;
 
-        void buildLocatorFrom(std::string channelpath);
+  // // Cell location from ROC fields and Module location
+  std::tuple<int, int, int> getCellLocation(
+      int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const;
 
-        // // Cell location from ROC fields and Module location
-        std::tuple<int,int,int> getCellLocation(int seq, int econderx, int halfrocch, int layer, int modiring, int modiphi) const;
+  // // Cell location (ring,iphi) from HGCalElectronicsId and Module location
+  std::tuple<int, int> getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const;
 
-        // // Cell location (ring,iphi) from HGCalElectronicsId and Module location
-        std::tuple<int,int> getCellLocation(HGCalElectronicsId& id, int seq, int layer, int modiring, int modiphi) const;
+  // // DetId from ElectronicsId and Module location, including z-side
+  DetId getDetId(
+      const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi, int type, int sipm) const;
 
-        // // DetId from ElectronicsId and Module location, including z-side
-        DetId getDetId(HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const;
+  // // DetId from ElectronicsId and Module location using type calculated from layer
+  DetId getDetId(const HGCalElectronicsId& id, int seq, int z, int layer, int modiring, int modiphi) const;
 
-        // // Module location (layer, ring, iphi) from DetId
-        std::tuple<int,int,int> getModuleLocation(DetId& id) const;
+  // // Module location (layer, ring, iphi) from DetId
+  std::tuple<int, int, int> getModuleLocation(DetId& id) const;
 
-    private:
-        HGCalCondSerializableSiPMTileInfo cellColl_;
+private:
+  HGCalCondSerializableSiPMTileInfo cellColl_;
 
-        int getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const;
+  int getSiPMchannel(int seq, uint8_t econderx, uint8_t halfrocch) const;
 };
 
 #endif
